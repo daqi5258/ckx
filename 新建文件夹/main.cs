@@ -13,9 +13,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Windows.Forms;
-using Application = Autodesk.AutoCAD.ApplicationServices.Application;
-
+using Form = System.Windows.Forms;
 [assembly: CommandClass(typeof(ckx.main))]
 namespace ckx
 {
@@ -977,9 +975,9 @@ namespace ckx
                 if (path.Length < 1)
                 {
                     path = @"C:\Users\jdq\Desktop\Jo\1#";
-                    FolderBrowserDialog dialog = new FolderBrowserDialog();
+                    Form.FolderBrowserDialog dialog = new Form.FolderBrowserDialog();
                     dialog.Description = "请选择导出文件的路径";   // 设置窗体的标题
-                    if (dialog.ShowDialog() == DialogResult.OK)   // 窗体打开成功
+                    if (dialog.ShowDialog() == Form.DialogResult.OK)   // 窗体打开成功
                     {
                         path = dialog.SelectedPath;  // 获取文件的路径
                     }
@@ -1558,9 +1556,9 @@ namespace ckx
                 if (path.Length < 1)
                 {
                     path = @"C:\Users\jdq\Desktop\Jo\1#";
-                    FolderBrowserDialog dialog = new FolderBrowserDialog();
+                    Form.FolderBrowserDialog dialog = new Form.FolderBrowserDialog();
                     dialog.Description = "请选择导出截图文件的路径";   // 设置窗体的标题
-                    if (dialog.ShowDialog() == DialogResult.OK)   // 窗体打开成功
+                    if (dialog.ShowDialog() == Form.DialogResult.OK)   // 窗体打开成功
                     {
                         path = dialog.SelectedPath;  // 获取文件的路径
                     }

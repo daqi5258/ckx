@@ -33,14 +33,16 @@
   <ItemGroup>
     <Reference Include="acdbmgd">
       <HintPath>C:\Program Files\Autodesk\AutoCAD 2012 - Simplified Chinese\acdbmgd.dll</HintPath>
-      <Private>False</Private>
     </Reference>
     <Reference Include="acmgd">
       <HintPath>C:\Program Files\Autodesk\AutoCAD 2012 - Simplified Chinese\acmgd.dll</HintPath>
-      <Private>False</Private>
+    </Reference>
+    <Reference Include="asdkOPMNetExt64">
+      <HintPath>..\..\shareDLL\asdkOPMNetExt64.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -48,6 +50,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="customPropertySample.cs" />
+    <Compile Include="ElRecJig.cs" />
+    <Compile Include="EntityChangeTools.cs" />
+    <Compile Include="LT.cs" />
     <Compile Include="main.cs" />
     <Compile Include="Class2.cs" />
     <Compile Include="mline.cs" />
