@@ -10,9 +10,11 @@ using OPMNetSample;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
@@ -1773,7 +1775,6 @@ namespace ckx
                 TypedValue[] filter = new TypedValue[] { new TypedValue((int)DxfCode.BlockName, brName) };
                 SelectionFilter sFilter = new SelectionFilter(filter);
                 PromptSelectionResult psr = ed.GetSelection(pso, sFilter);
-                ed.WriteMessage("\npsr.Status=" + psr.Status);
                 if (psr.Status != PromptStatus.OK) return;
                 else
                 {
@@ -1789,8 +1790,7 @@ namespace ckx
                             {
                                 if (ar.Tag == arT.Tag)
                                 {
-                                    ar.TextString = "#"+arT.TextString+","+ x;
-                                    ed.WriteMessage("\nar="+ar.TextString);
+                                    ar.TextString = arT.TextString;
                                 }
                             }
                         }
@@ -1800,6 +1800,108 @@ namespace ckx
             }
         }
 
+        [CommandMethod("bhk")]
+        /// <summary>
+        /// 块自动编号
+        /// </summary>
+        public static void AutoNumBlock()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                string start;
+                PromptResult pr = ed.GetString("\n请输入起始车位编号:");
+                if (pr.Status != PromptStatus.OK) return;
+                else
+                    start = pr.StringResult;
+                int num = 1;
+                int size = 1;
+                string pre = "", last = "";
+                if (Regex.IsMatch(start, @"^\d*$") || start.Length == 0)
+                {
+                    num = int.Parse(start);
+                }
+                else
+                {
+                    string st = Regex.Replace(start, @"[^0-9]+", "");
+                    num = int.Parse(st);
+                    size = st.Length;
+                    pre = start.Substring(0, start.IndexOf(st));
+                    last = start.Substring(pre.Length + st.Length);
+                    ed.WriteMessage("pre=" + pre + ",num=" + st + ",last=" + last);
+                }
+
+                PromptSelectionOptions pso = new PromptSelectionOptions();
+                pso.MessageForAdding = "\n请选择要标号的车位:";
+                TypedValue[] filter = new TypedValue[]
+                {
+                    new TypedValue((int)DxfCode.Operator,"<or"),
+                    new TypedValue((int)DxfCode.BlockName, "cw"),
+                    new TypedValue((int)DxfCode.BlockName, "A$C68CD7CA3"),
+                    new TypedValue((int)DxfCode.Operator,"or>"),
+                    // new TypedValue((int)DxfCode.Start, "BlockReference")
+                };
+                SelectionFilter sFilter = new SelectionFilter(filter);
+                PromptSelectionResult psr = ed.GetSelection(pso, sFilter);
+                if (psr.Status != PromptStatus.OK) return;
+                else
+                {
+                    SelectionSet ss = psr.Value;
+                    List<PointAndAtt> p2as = new List<PointAndAtt>();
+                    foreach (var id in ss.GetObjectIds())
+                    {
+                        BlockReference brTmp = id.GetObject(OpenMode.ForWrite) as BlockReference;
+                        PointAndAtt paa = new PointAndAtt();
+                        paa.point = brTmp.Position;
+                        paa.atts = brTmp.AttributeCollection;
+                        p2as.Add(paa);
+                        /*
+                        foreach (ObjectId bratt in brTmp.AttributeCollection)
+                        {
+                            AttributeReference ar = bratt.GetObject(OpenMode.ForWrite) as AttributeReference;
+                            foreach (var arT in ars)
+                            {
+                                if (ar.Tag == arT.Tag)
+                                {
+                                    ar.TextString = arT.TextString;
+                                }
+                            }
+                        }*/
+                    }
+
+                    var inf = (from q in p2as orderby (int)q.point.Y, (int)q.point.X select q).ToList();
+                    for (int i = 0; i < p2as.Count; i++)
+                    {
+                        foreach (ObjectId bratt in inf[i].atts)
+                        {
+                            AttributeReference ar = bratt.GetObject(OpenMode.ForWrite) as AttributeReference;
+                            if (ar.Tag == "NUMBER")
+                            {
+                                string cnum = num + "";
+                                if (size - cnum.Length == 1)
+                                    ar.TextString = pre + "0" + num + last;
+                                else if (size - cnum.Length == 2)
+                                    ar.TextString = pre + "00" + num + last;
+                                else if (size - cnum.Length == 3)
+                                    ar.TextString = pre + "000" + num + last;
+                                else if (size <= cnum.Length)
+                                    ar.TextString = pre + num + last;
+                                num++;
+                                ed.WriteMessage("\nnum=" + num + inf[i].point);
+                            }
+                        }
+                    }
+                }
+                trans.Commit();
+            }
+        }
+        struct PointAndAtt
+        {
+            public Point3d point { get; set; }
+            public AttributeCollection atts { get; set; }
+        }
 
         [CommandMethod("test")]
         public static void test()
@@ -1958,7 +2060,192 @@ namespace ckx
 
 
 
+        [CommandMethod("stair")]
+        public static void Stair()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            PromptPointOptions ppo = new PromptPointOptions("\n请指定插入点:");
+            PromptPointResult ppr = ed.GetPoint(ppo);
+            if (ppr.Status != PromptStatus.OK) return;
+            else
+            {
+                Point3d point = ppr.Value;
 
+                List<myStair> stairs = new List<myStair>();
+                StairForm stairForm = new StairForm();
+                Application.ShowModalDialog(stairForm);
+                if (stairForm.DialogResult == DialogResult.OK)
+                {
+                    stairForm.ShowInTaskbar = false;
+                    stairs = stairForm.res;
+                }
+                var sortStairs = (from q in stairs orderby q.Num ascending select q).ToList();
+                int start = sortStairs[0].Num;
+                bool first = true;
+                foreach (var stair in sortStairs)
+                {
+                    if (start == stair.Num)
+                    {
+                        if (!first)
+                        {
+                            Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
+                            point += vt2;
+                        }
+                        first = false;
+                        db.DrawStair(point, stair.FloorWidth, stair.FloorHeight / 2, stair.LtW, stair.LtH,stair.LTN, stair.ExtW,stair.ExtW2, stair.ExtH, -stair.Cover, stair.SW, stair.Sh);
+                    }
+                    start++;
+                    Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
+                    point += vt;
+                }
+                /*
+                Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, 2929.45, 0));
+                db.DrawStair(ppr.Value, 2340, 2929.45/2, 260, 175, 3150, 120, -4,400,200);
+                Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, 2950, 0));
+                db.DrawStair(ppr.Value +  (vt+vt2)/2, 2280, 1475, 260, 175, 1550, 120, -3, 400, 200);
+                db.DrawStair(ppr.Value + (vt + vt2) / 2 + vt2, 2280, 1475, 260, 175, 1550, 120, -2, 400, 200);
+                db.DrawStair(ppr.Value + (vt + vt2) / 2 + 2 * vt2, 2280, 1475, 260, 175, 1550, 120, -8, 400, 200);
+                db.DrawStair(ppr.Value + (vt + vt2) / 2 + 3 * vt2, 2280, 1475, 260, 175, 1550, 120, -5, 400, 200);
+            */
+            }
+        }
+
+        /// <summary>
+        /// 楼梯
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="point">楼梯设置点</param>
+        /// <param name="FloorWidth">楼宽</param>
+        /// <param name="FloorHeight">楼高</param>
+        /// <param name="LtW">楼梯宽</param>
+        /// <param name="LtH">楼梯高</param>
+        /// <param name="ExtW">两边延长</param>
+        /// <param name="ExtH">楼梯混凝土厚度</param>
+        /// <param name="Cover">楼梯面混凝土厚度</param>
+        ///  <param name="SH">楼梯面混凝土厚度</param>
+        ///  <param name="SW">楼梯面混凝土宽度</param>
+        public static void DrawStair(this Database db, Point3d point, double FloorWidth, double FloorHeight, double LtW, double LtH,double LtN, double ExtW, double ExtW2, double ExtH, double Cover, double SW, double Sh)
+        {
+            Point2dCollection pts = new Point2dCollection(), pts_1 = new Point2dCollection(),
+                pts2 = new Point2dCollection();
+
+            double num = Math.Ceiling(FloorWidth / LtW);
+            LtH = FloorHeight / num;
+            Point2d p0 = new Point2d(point.X - ExtW, point.Y);
+            Point2d p1 = new Point2d(point.X, point.Y);
+            //pts.Add(p0);
+            pts.Add(p1);
+            Point2d ptl = Point2d.Origin;
+            for (int i = 1; i <= num; i++)
+            {
+                pts.Add(new Point2d(p1.X + (i - 1) * LtW, p1.Y + i * LtH));
+                if (i != num)
+                {
+                    ptl = new Point2d(p1.X + i * LtW, p1.Y + i * LtH);
+                    pts.Add(ptl);
+                }
+                else
+                {
+                    ptl = new Point2d(p1.X + (i - 1) * LtW, p1.Y + i * LtH);
+                }
+            }
+
+
+
+
+            Point2d p3 = new Point2d(ptl.X + ExtW, ptl.Y);
+            Point2d p4 = new Point2d(p3.X, p3.Y - ExtH);
+            Point2d p5 = new Point2d(p4.X - ExtW, p4.Y);
+            Point2d p6 = new Point2d(p1.X, p1.Y - ExtH);
+            Point2d p7 = new Point2d(p0.X, p0.Y - ExtH);
+            //pts.Add(p3); pts.Add(p4); pts.Add(p5); pts.Add(p6); pts.Add(p7);
+            pts_1.Add(p1); pts_1.Add(p0); pts_1.Add(new Point2d(p0.X, p0.Y - ExtH));
+            pts_1.Add(new Point2d(p1.X - SW, p1.Y - ExtH)); pts_1.Add(new Point2d(p1.X - SW, p1.Y - Sh)); pts_1.Add(new Point2d(p1.X, p1.Y - Sh));
+            pts_1.Add(new Point2d(p1.X, p1.Y - LtH)); pts_1.Add(new Point2d(ptl.X, ptl.Y - LtH - ExtH));
+            pts_1.Add(new Point2d(ptl.X, ptl.Y - Sh)); pts_1.Add(new Point2d(ptl.X + SW, ptl.Y - Sh)); pts_1.Add(new Point2d(ptl.X + SW, ptl.Y - ExtH));
+            pts_1.Add(new Point2d(ptl.X + ExtW - SW, ptl.Y - ExtH)); pts_1.Add(new Point2d(ptl.X + ExtW - SW, ptl.Y - Sh)); pts_1.Add(new Point2d(ptl.X + ExtW, ptl.Y - Sh));
+            pts_1.Add(new Point2d(ptl.X + ExtW, ptl.Y)); pts_1.Add(ptl);
+
+            pts2.Add(p1);
+            for (int i = 1; i < num; i++)
+            {
+                pts2.Add(new Point2d(p1.X + (i - 1) * LtW, p1.Y - i * LtH));
+                ptl = new Point2d(p1.X + i * LtW, p1.Y - i * LtH);
+                pts2.Add(ptl);
+            }
+            Point2d p2_1 = new Point2d(ptl.X, ptl.Y - LtH);
+            pts2.Add(p2_1);
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Polyline pl = new Polyline();
+                //pl.Closed = true;
+                for (int i = 0; i < pts.Count; i++)
+                {
+                    pl.AddVertexAt(i, pts[i], 0, 0, 0);
+                }
+                Polyline pl_1 = new Polyline();
+                for (int i = 0; i < pts_1.Count; i++)
+                {
+                    pl_1.AddVertexAt(i, pts_1[i], 0, 0, 0);
+                }
+               
+                if (Cover != 0)
+                {
+                    Polyline cpl1 = new Polyline();
+                    DBObjectCollection dbo = pl.GetOffsetCurves(Cover);
+                    if (dbo.Count > 0)
+                    {
+                        cpl1 = dbo[0] as Polyline;
+                        cpl1.AddVertexAt(0, pl.GetPoint2dAt(0), 0, 0, 0);
+                        cpl1.AddVertexAt(cpl1.NumberOfVertices, pl.GetPoint2dAt(pl.NumberOfVertices - 1), 0, 0, 0);
+                    }
+                    db.AddToModelSpace(cpl1, "STAIR");
+                }
+                //cpl1.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+
+                Polyline pl2 = new Polyline();
+                pl2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+                for (int i = 0; i < pts2.Count; i++)
+                {
+                    pl2.AddVertexAt(i, pts2[i], 0, 0, 0);
+                }
+
+                Line line = new Line(new Point3d(p1.X, p1.Y - ExtH - LtH, 0), new Point3d(p2_1.X, p2_1.Y - ExtH, 0));
+                LinetypeTable ltt = db.LinetypeTableId.GetObject(OpenMode.ForRead) as LinetypeTable;
+                if (ltt.Has("DASH"))
+                {
+                    line.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+                    line.LinetypeId = ltt["DASH"];
+                }
+                
+                if (Cover != 0)
+                {
+                    Polyline cpl2 = new Polyline();
+                    cpl2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+                    DBObjectCollection dbo = pl2.GetOffsetCurves(Cover);
+                    if (dbo.Count > 0)
+                    {
+                        cpl2 = dbo[0] as Polyline;
+                        cpl2.AddVertexAt(0, pl2.GetPoint2dAt(0), 0, 0, 0);
+                        cpl2.AddVertexAt(cpl2.NumberOfVertices, pl2.GetPoint2dAt(pl2.NumberOfVertices - 1), 0, 0, 0);
+                    }
+
+                    db.AddToModelSpace(cpl2, "STAIR");
+                }
+               
+                db.AddToModelSpace(pl, "STAIR");
+                db.AddToModelSpace(pl_1, "STAIR");
+                db.AddToModelSpace(pl2, "STAIR");
+                db.AddToModelSpace(line, "STAIR");
+
+
+                //pl2.JoinEntity(cpl2);
+                trans.Commit();
+            }
+        }
 
 
 
