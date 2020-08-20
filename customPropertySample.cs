@@ -1,3 +1,4 @@
+/*
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows.OPM;
@@ -148,6 +149,7 @@ namespace OPMNetSample
 
     }
     #endregion*/
-
+/*
 
 }
+*/

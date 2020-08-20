@@ -5,8 +5,7 @@ using Autodesk.AutoCAD.DatabaseServices.Filters;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.Windows.OPM;
-using OPMNetSample;
+//using OPMNetSample;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1978,6 +1977,7 @@ namespace ckx
             }
 
         }
+        /*
         [CommandMethod("opm")]
         public static void Initialize()
         {
@@ -1990,8 +1990,7 @@ namespace ckx
             custProp = new CustomProp();
             pPropMan.AddProperty((object)custProp);
         }
-
-
+        */
         /// <summary>
         /// 图纸的图形特性
         /// </summary>
@@ -2072,7 +2071,7 @@ namespace ckx
             else
             {
                 Point3d point = ppr.Value;
-
+                
                 List<myStair> stairs = new List<myStair>();
                 StairForm stairForm = new StairForm();
                 Application.ShowModalDialog(stairForm);
@@ -2081,34 +2080,33 @@ namespace ckx
                     stairForm.ShowInTaskbar = false;
                     stairs = stairForm.res;
                 }
+                if (stairs.Count < 1) return;
                 var sortStairs = (from q in stairs orderby q.Num ascending select q).ToList();
                 int start = sortStairs[0].Num;
                 bool first = true;
+                Point3dCollection pts = new Point3dCollection();
                 foreach (var stair in sortStairs)
                 {
+                    
                     if (start == stair.Num)
                     {
-                        if (!first)
-                        {
-                            Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
-                            point += vt2;
-                        }
+                        Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight/2, 0));
+                        point += vt2;
+                        pts.Add(point);
                         first = false;
-                        db.DrawStair(point, stair.FloorWidth, stair.FloorHeight / 2, stair.LtW, stair.LtH,stair.LTN, stair.ExtW,stair.ExtW2, stair.ExtH, -stair.Cover, stair.SW, stair.Sh);
+                        ed.WriteMessage("\n"+stair.FloorWidth + "," + stair.FloorHeight + "," + stair.LtW + "," + stair.LtH + "," + stair.LTN + "," + stair.ExtH + "," + stair.ExtW + "," + stair.ExtW2 + "," + stair.ExtH2 + "," + -stair.Cover + "," + stair.SW+","+ stair.Sh);
+                        db.DrawStair(point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh);
                     }
                     start++;
-                    Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
+                    Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight/2, 0));
                     point += vt;
                 }
-                /*
-                Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, 2929.45, 0));
-                db.DrawStair(ppr.Value, 2340, 2929.45/2, 260, 175, 3150, 120, -4,400,200);
-                Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, 2950, 0));
-                db.DrawStair(ppr.Value +  (vt+vt2)/2, 2280, 1475, 260, 175, 1550, 120, -3, 400, 200);
-                db.DrawStair(ppr.Value + (vt + vt2) / 2 + vt2, 2280, 1475, 260, 175, 1550, 120, -2, 400, 200);
-                db.DrawStair(ppr.Value + (vt + vt2) / 2 + 2 * vt2, 2280, 1475, 260, 175, 1550, 120, -8, 400, 200);
-                db.DrawStair(ppr.Value + (vt + vt2) / 2 + 3 * vt2, 2280, 1475, 260, 175, 1550, 120, -5, 400, 200);
-            */
+                Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly,pts,false);
+                db.AddToCKXModelSpace(pl);
+               
+                //Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, 2929.45, 0));
+                //db.DrawStair(ppr.Value, 2340, 3500, 234, 175,10, 1600,1400, 120,200, -4,200,400);
+               
             }
         }
 
@@ -2126,125 +2124,112 @@ namespace ckx
         /// <param name="Cover">楼梯面混凝土厚度</param>
         ///  <param name="SH">楼梯面混凝土厚度</param>
         ///  <param name="SW">楼梯面混凝土宽度</param>
-        public static void DrawStair(this Database db, Point3d point, double FloorWidth, double FloorHeight, double LtW, double LtH,double LtN, double ExtW, double ExtW2, double ExtH, double Cover, double SW, double Sh)
+        public static void DrawStair(this Database db, Point3d point, double FloorWidth, double FloorHeight, double LtW, double LtH, double LtN, double ExtW, double ExtW2, double ExtH, double ExtH2, double Cover, double SW, double Sh)
         {
-            Point2dCollection pts = new Point2dCollection(), pts_1 = new Point2dCollection(),
+            Point2dCollection pts = new Point2dCollection()
+                , pts_1 = new Point2dCollection(),
                 pts2 = new Point2dCollection();
-
-            double num = Math.Ceiling(FloorWidth / LtW);
-            LtH = FloorHeight / num;
-            Point2d p0 = new Point2d(point.X - ExtW, point.Y);
-            Point2d p1 = new Point2d(point.X, point.Y);
-            //pts.Add(p0);
-            pts.Add(p1);
-            Point2d ptl = Point2d.Origin;
-            for (int i = 1; i <= num; i++)
-            {
-                pts.Add(new Point2d(p1.X + (i - 1) * LtW, p1.Y + i * LtH));
-                if (i != num)
-                {
-                    ptl = new Point2d(p1.X + i * LtW, p1.Y + i * LtH);
-                    pts.Add(ptl);
-                }
-                else
-                {
-                    ptl = new Point2d(p1.X + (i - 1) * LtW, p1.Y + i * LtH);
-                }
-            }
-
-
-
-
-            Point2d p3 = new Point2d(ptl.X + ExtW, ptl.Y);
-            Point2d p4 = new Point2d(p3.X, p3.Y - ExtH);
-            Point2d p5 = new Point2d(p4.X - ExtW, p4.Y);
-            Point2d p6 = new Point2d(p1.X, p1.Y - ExtH);
-            Point2d p7 = new Point2d(p0.X, p0.Y - ExtH);
-            //pts.Add(p3); pts.Add(p4); pts.Add(p5); pts.Add(p6); pts.Add(p7);
-            pts_1.Add(p1); pts_1.Add(p0); pts_1.Add(new Point2d(p0.X, p0.Y - ExtH));
-            pts_1.Add(new Point2d(p1.X - SW, p1.Y - ExtH)); pts_1.Add(new Point2d(p1.X - SW, p1.Y - Sh)); pts_1.Add(new Point2d(p1.X, p1.Y - Sh));
-            pts_1.Add(new Point2d(p1.X, p1.Y - LtH)); pts_1.Add(new Point2d(ptl.X, ptl.Y - LtH - ExtH));
-            pts_1.Add(new Point2d(ptl.X, ptl.Y - Sh)); pts_1.Add(new Point2d(ptl.X + SW, ptl.Y - Sh)); pts_1.Add(new Point2d(ptl.X + SW, ptl.Y - ExtH));
-            pts_1.Add(new Point2d(ptl.X + ExtW - SW, ptl.Y - ExtH)); pts_1.Add(new Point2d(ptl.X + ExtW - SW, ptl.Y - Sh)); pts_1.Add(new Point2d(ptl.X + ExtW, ptl.Y - Sh));
-            pts_1.Add(new Point2d(ptl.X + ExtW, ptl.Y)); pts_1.Add(ptl);
-
-            pts2.Add(p1);
-            for (int i = 1; i < num; i++)
-            {
-                pts2.Add(new Point2d(p1.X + (i - 1) * LtW, p1.Y - i * LtH));
-                ptl = new Point2d(p1.X + i * LtW, p1.Y - i * LtH);
-                pts2.Add(ptl);
-            }
-            Point2d p2_1 = new Point2d(ptl.X, ptl.Y - LtH);
-            pts2.Add(p2_1);
-
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                Polyline pl = new Polyline();
-                //pl.Closed = true;
-                for (int i = 0; i < pts.Count; i++)
+                Point2d p1 = new Point2d(point.X + ExtW, point.Y);
+                pts.Add(p1);
+                for (int i = 1; i <= LtN; i++)
                 {
-                    pl.AddVertexAt(i, pts[i], 0, 0, 0);
+                    pts.Add(new Point2d(p1.X + (i - 1) * LtW, p1.Y + i * LtH));
+                    if (i != LtN)
+                    {
+                        pts.Add(new Point2d(p1.X + i * LtW, p1.Y + i * LtH));
+                    }
                 }
+                Point2d plast = pts[pts.Count-1];
+
+                pts_1.Add(p1); pts_1.Add(new Point2d(point.X, point.Y));
+                pts_1.Add(new Point2d(point.X,point.Y-ExtH2));
+                pts_1.Add(new Point2d(p1.X-SW, point.Y - ExtH2));
+                pts_1.Add(new Point2d(p1.X - SW, point.Y - Sh));
+                pts_1.Add(new Point2d(p1.X , point.Y - Sh));
+                pts_1.Add(new Point2d(p1.X , point.Y - ExtH)); 
+                pts_1.Add(new Point2d(plast.X, plast.Y - LtH-ExtH));
+                pts_1.Add(new Point2d(plast.X, plast.Y - Sh)); 
+                pts_1.Add(new Point2d(plast.X+SW, plast.Y - Sh));
+                pts_1.Add(new Point2d(plast.X+SW, plast.Y - ExtH2));
+                pts_1.Add(new Point2d(plast.X + ExtW2 - SW, plast.Y - ExtH2));
+                pts_1.Add(new Point2d(plast.X + ExtW2-SW, plast.Y - Sh)); 
+                pts_1.Add(new Point2d(plast.X + ExtW2, plast.Y - Sh));
+                pts_1.Add(new Point2d(plast.X + ExtW2 , plast.Y));
+                pts_1.Add(plast);
+
+                for (int i = 1; i <= LtN; i++)
+                {
+                    pts2.Add(new Point2d(p1.X + (i - 1) * LtW, p1.Y - i * LtH));
+                    if (i != LtN )
+                    {
+                        pts2.Add(new Point2d(p1.X + i * LtW, p1.Y - i * LtH));
+                    }
+                }
+
+                Polyline pl = new Polyline();
                 Polyline pl_1 = new Polyline();
+                Polyline pl2 = new Polyline();
+                pl2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+                for (int i=0;i<pts.Count;i++)
+                {
+                    pl.AddVertexAt(i,pts[i],0,0,0);
+                }
                 for (int i = 0; i < pts_1.Count; i++)
                 {
                     pl_1.AddVertexAt(i, pts_1[i], 0, 0, 0);
                 }
-               
-                if (Cover != 0)
-                {
-                    Polyline cpl1 = new Polyline();
-                    DBObjectCollection dbo = pl.GetOffsetCurves(Cover);
-                    if (dbo.Count > 0)
-                    {
-                        cpl1 = dbo[0] as Polyline;
-                        cpl1.AddVertexAt(0, pl.GetPoint2dAt(0), 0, 0, 0);
-                        cpl1.AddVertexAt(cpl1.NumberOfVertices, pl.GetPoint2dAt(pl.NumberOfVertices - 1), 0, 0, 0);
-                    }
-                    db.AddToModelSpace(cpl1, "STAIR");
-                }
-                //cpl1.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
-
-                Polyline pl2 = new Polyline();
-                pl2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
                 for (int i = 0; i < pts2.Count; i++)
                 {
                     pl2.AddVertexAt(i, pts2[i], 0, 0, 0);
                 }
 
-                Line line = new Line(new Point3d(p1.X, p1.Y - ExtH - LtH, 0), new Point3d(p2_1.X, p2_1.Y - ExtH, 0));
+                if (Cover!=0)
+                {
+                    Polyline pl_c = pl.Clone() as Polyline;
+                    pl_c.AddVertexAt(0, new Point2d(point.X, point.Y),0,0,0);
+                    pl_c.AddVertexAt(pl_c.NumberOfVertices, new Point2d(plast.X + ExtW2, plast.Y),0,0,0);
+                    Polyline cp1 = pl_c.GetOffsetCurves(Cover)[0] as Polyline;
+                    cp1.AddVertexAt(0, pl_c.GetPoint2dAt(0),0,0,0);
+                    cp1.AddVertexAt(cp1.NumberOfVertices, pl_c.GetPoint2dAt(pl_c.NumberOfVertices-1), 0, 0, 0);
+                    Polyline cp2 = pl2.GetOffsetCurves(Cover)[0] as Polyline;
+                    cp2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+                    cp2.AddVertexAt(0, pl2.GetPoint2dAt(0), 0, 0, 0);
+                    cp2.AddVertexAt(cp2.NumberOfVertices, pl2.GetPoint2dAt(pl2.NumberOfVertices - 1), 0, 0, 0) ;
+
+                    db.AddToModelSpace(cp1, "STAIR");
+                    db.AddToModelSpace(cp2, "STAIR");
+
+
+                    Point2dCollection ptsFs = new Point2dCollection();
+                    ptsFs.Add(new Point2d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900));
+                    ptsFs.Add(new Point2d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y + 900));
+                    ptsFs.Add(new Point2d(cp1.GetPoint2dAt(3).X, cp2.GetPoint2dAt(1).Y + 900 + LtH));
+                    ptsFs.Add(new Point2d(cp2.GetPoint2dAt(1).X-Cover, cp2.GetPoint2dAt(1).Y + 900+LtH));
+                    ptsFs.Add(new Point2d(cp2.GetPoint2dAt(cp2.NumberOfVertices - 3).X, cp2.GetPoint2dAt(cp2.NumberOfVertices - 3).Y + 900));
+                    Polyline fs = new Polyline();
+                    for (int i = 0; i < ptsFs.Count; i++)
+                    {
+                        fs.AddVertexAt(i, ptsFs[i], 0, 0, 0);
+                    }
+                    db.AddToModelSpace(fs, "J通-栏杆、百叶、格栅、配件");
+                }
+
+                Line line = new Line(new Point3d(pts2[0].X, pts2[0].Y - ExtH, 0), new Point3d(pts2[pts2.Count-1].X, pts2[pts2.Count - 1].Y - ExtH, 0));
                 LinetypeTable ltt = db.LinetypeTableId.GetObject(OpenMode.ForRead) as LinetypeTable;
                 if (ltt.Has("DASH"))
                 {
                     line.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
                     line.LinetypeId = ltt["DASH"];
                 }
-                
-                if (Cover != 0)
-                {
-                    Polyline cpl2 = new Polyline();
-                    cpl2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
-                    DBObjectCollection dbo = pl2.GetOffsetCurves(Cover);
-                    if (dbo.Count > 0)
-                    {
-                        cpl2 = dbo[0] as Polyline;
-                        cpl2.AddVertexAt(0, pl2.GetPoint2dAt(0), 0, 0, 0);
-                        cpl2.AddVertexAt(cpl2.NumberOfVertices, pl2.GetPoint2dAt(pl2.NumberOfVertices - 1), 0, 0, 0);
-                    }
-
-                    db.AddToModelSpace(cpl2, "STAIR");
-                }
-               
-                db.AddToModelSpace(pl, "STAIR");
+                db.AddToModelSpace(line, "STAIR");
+                db.AddToModelSpace(pl,"STAIR");
                 db.AddToModelSpace(pl_1, "STAIR");
                 db.AddToModelSpace(pl2, "STAIR");
-                db.AddToModelSpace(line, "STAIR");
-
-
-                //pl2.JoinEntity(cpl2);
                 trans.Commit();
             }
+
         }
 
 
