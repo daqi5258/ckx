@@ -5,7 +5,6 @@ using Autodesk.AutoCAD.DatabaseServices.Filters;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
-//using OPMNetSample;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,32 +13,43 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Forms;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
-
-//[assembly: CommandClass(typeof(ckx.main))]
+[assembly: CommandClass(typeof(ckx.Command))]
 namespace ckx {
-    public static class main {
-        
-
-        private static bool RightStatus = false;
-        public static void RightsCheck()
+    public class Command {
+        private  bool RightStatus = false;
+        public  Command()
         {
             IPGlobalProperties computerProperties = IPGlobalProperties.GetIPGlobalProperties();
             string hostName = computerProperties.HostName;
             string domainName = computerProperties.DomainName;
-            if (domainName=="hc.com")
+            if (domainName == "hc1.com")
             {
                 RightStatus = true;
             }
-            Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("RightStatus="+ RightStatus);
-
+            if (!RightStatus)
+            {
+                //Application.Quit();
+                Thread thread = new Thread(Quit);
+                thread.Start();
+                thread.Join();
+            }
         }
+        public void Quit()
+        {
+            MessageBox.Show("警告!非法使用武汉和创建设有限公司成果,程序退出!");
+            Application.Quit();
+            Thread.Sleep(1000);
+        }
+
+
         /// <summary>
         /// 楼梯参考线,3点
         /// </summary>
-        [CommandMethod("ckx",CommandFlags.Modal)]
-        public static void getCKL()
+        [CommandMethod("ckx", CommandFlags.Modal)]
+        public  void getCKL()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -123,7 +133,7 @@ namespace ckx {
                     }
                     lt.UpgradeOpen();
                     lt.Add(ltr);
-                    trans.AddNewlyCreatedDBObject(ltr, true);
+                    trans.AddNewlyCreatedDBObject(ltr, RightStatus);
                     ltr.DowngradeOpen();
                     lt.DowngradeOpen();
                 }
@@ -141,7 +151,7 @@ namespace ckx {
         /// 删除参考线图层和实体
         /// </summary>
         [CommandMethod("dtckx")]
-        public static void deleteCKX()
+        public  void deleteCKX()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -172,7 +182,7 @@ namespace ckx {
         }
 
         [CommandMethod("right")]
-        public static void CheckRight()
+        public  void CheckRight()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -214,14 +224,14 @@ namespace ckx {
                         }
                         lt.UpgradeOpen();
                         lt.Add(ltr);
-                        trans.AddNewlyCreatedDBObject(ltr, true);
+                        trans.AddNewlyCreatedDBObject(ltr, RightStatus);
                         ltr.DowngradeOpen();
                         lt.DowngradeOpen();
                     }
 
                     db.Clayer = lt["参考线不打印"];
                     ObjectId objId = btr.AppendEntity(pl);
-                    trans.AddNewlyCreatedDBObject(pl, true);
+                    trans.AddNewlyCreatedDBObject(pl, RightStatus);
                     db.Clayer = clId;
 
                 }
@@ -242,7 +252,7 @@ namespace ckx {
         /// <param name="sourcePt"></param>
         /// <param name="targetPt"></param>
         /// <returns></returns>
-        public static ObjectId Move2(ObjectId objectId, Point3d sourcePt, Point3d targetPt)
+        public  ObjectId Move2(ObjectId objectId, Point3d sourcePt, Point3d targetPt)
         {
             Vector3d vt = targetPt.GetVectorTo(sourcePt);
             Matrix3d mt = Matrix3d.Displacement(vt);
@@ -259,7 +269,7 @@ namespace ckx {
         /// 车位统计和刷新(两点式)
         /// </summary>
         [CommandMethod("cwtj")]
-        public static void InitMyTable()
+        public  void InitMyTable()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -290,7 +300,7 @@ namespace ckx {
                     ts.SetAlignment(CellAlignment.MiddleCenter, 4);
                     dict.UpgradeOpen();
                     objid = dict.SetAt("ColorTable", ts);
-                    trans.AddNewlyCreatedDBObject(ts, true);
+                    trans.AddNewlyCreatedDBObject(ts, RightStatus);
                 }
                 PromptPointResult ppr1 = ed.GetPoint("\n请输入第一点:");
                 if (ppr1.Status != PromptStatus.OK) return;
@@ -307,7 +317,7 @@ namespace ckx {
                     pts.Add(p1); pts.Add(new Point3d(p1.X, p2.Y, 0)); pts.Add(p2); pts.Add(new Point3d(p2.X, p1.Y, 0));
 
                     Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, pts, true);
-                    db.AddToCKXModelSpace(pl);
+                    AddToCKXModelSpace(db,pl);
                     PromptSelectionResult psr = ed.SelectCrossingPolygon(pts);
                     SelectionSet ss = psr.Value;
                     if (ss == null) { ed.WriteMessage("\n 该区域没有相关块,请重新操作!"); return; }
@@ -369,7 +379,7 @@ namespace ckx {
         }
 
         [CommandMethod("cwsx")]
-        public static void RefreshTable()
+        public  void RefreshTable()
         {
 
             Document doc = Application.DocumentManager.MdiActiveDocument;
@@ -451,7 +461,7 @@ namespace ckx {
 
         }
 
-        public static ObjectId AddToCKXModelSpace(this Database db, Entity ent)
+        public  ObjectId AddToCKXModelSpace( Database db, Entity ent)
         {
             ObjectId objectId;
 
@@ -474,7 +484,7 @@ namespace ckx {
                         ltr.IsPlottable = false;
                         lt.UpgradeOpen();
                         lt.Add(ltr);
-                        trans.AddNewlyCreatedDBObject(ltr, true);
+                        trans.AddNewlyCreatedDBObject(ltr, RightStatus);
                         ltr.DowngradeOpen();
                         lt.DowngradeOpen();
                     }
@@ -488,7 +498,7 @@ namespace ckx {
                         tstr.TextSize = 300.0;
                         tst.UpgradeOpen();
                         tst.Add(tstr);
-                        trans.AddNewlyCreatedDBObject(tstr, true);
+                        trans.AddNewlyCreatedDBObject(tstr, RightStatus);
                         tst.DowngradeOpen();
                     }
 
@@ -498,14 +508,14 @@ namespace ckx {
                     db.Textstyle = tst["属性"];
 
                     objectId = btr.AppendEntity(ent);
-                    trans.AddNewlyCreatedDBObject(ent, true);
+                    trans.AddNewlyCreatedDBObject(ent, RightStatus);
                     db.Clayer = clId;
                 }
                 trans.Commit();
             }
             return objectId;
         }
-        public static ObjectId AddToModelSpace(this Database db, Entity ent, String LayerName)
+        public  ObjectId AddToModelSpace( Database db, Entity ent, String LayerName)
         {
             ObjectId objectId;
 
@@ -520,7 +530,7 @@ namespace ckx {
                         ent.Layer = LayerName;
                     }
                     objectId = btr.AppendEntity(ent);
-                    trans.AddNewlyCreatedDBObject(ent, true);
+                    trans.AddNewlyCreatedDBObject(ent, RightStatus);
 
                 }
                 trans.Commit();
@@ -534,7 +544,7 @@ namespace ckx {
         /// </summary>
         /// <param name="strId">string</param>
         /// <returns></returns>
-        public static ObjectId StringToObjectId(string strId)
+        public  ObjectId StringToObjectId(string strId)
         {
             if (strId.IndexOf("(") < 0) return ObjectId.Null;
             strId = strId.Substring(1, strId.Length - 2);
@@ -545,7 +555,7 @@ namespace ckx {
             return obj;
         }
 
-        public static Point3d StringToPoint3d(String p)
+        public  Point3d StringToPoint3d(String p)
         {
             if (p == null) return new Point3d(0, 0, 0);
             else
@@ -562,7 +572,7 @@ namespace ckx {
 
 
         [CommandMethod("polyjig")]
-        public static void GetPolyline()
+        public  void GetPolyline()
         {
             Database db = HostApplicationServices.WorkingDatabase;
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -592,7 +602,7 @@ namespace ckx {
             }
         }
         [CommandMethod("wall")]
-        public static void mlineJig()
+        public  void mlineJig()
         {
             Database db = HostApplicationServices.WorkingDatabase;
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -638,7 +648,7 @@ namespace ckx {
         }
 
         [CommandMethod("mlinedraw")]
-        public static void AddMline()
+        public  void AddMline()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -672,7 +682,7 @@ namespace ckx {
                 ObjectId ModelSpaceId = SymbolUtilityServices.GetBlockModelSpaceId(db);
                 BlockTableRecord model = Tx.GetObject(ModelSpaceId, OpenMode.ForWrite) as BlockTableRecord;
                 model.AppendEntity(line);
-                Tx.AddNewlyCreatedDBObject(line, true);
+                Tx.AddNewlyCreatedDBObject(line, RightStatus);
                 Tx.Commit();
             }
         }
@@ -682,7 +692,7 @@ namespace ckx {
         /// <param name="name"></param>
         /// <param name="top">上部高度</param>
         /// <param name="but">下部高度</param>
-        public static void createmlinestyle(String name, double top, double but)
+        public  void createmlinestyle(String name, double top, double but)
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Editor editor = doc.Editor;
@@ -703,7 +713,7 @@ namespace ckx {
                     /*
                     Color red = Color.FromColorIndex(ColorMethod.ByAci, 1);
                     ObjectId ctId = LoadLineType(db, "DASHED");
-                    mlineStyle.Elements.Add(new MlineStyleElement(0, red, ctId), true);
+                    mlineStyle.Elements.Add(new MlineStyleElement(0, red, ctId), RightStatus);
                      mlineStyle.StartRoundCap = false;//前部外弧
                     mlineStyle.ShowMiters = false;//连接线,中间和端点
                     mlineStyle.EndSquareCap = false;//后部外弧
@@ -714,14 +724,14 @@ namespace ckx {
                     mlineStyle.Elements.Add(new MlineStyleElement(top, blue, hID), true);
                     mlineStyle.Elements.Add(new MlineStyleElement(-but, blue, hID), true);
                     db.CmlstyleID = mlineDic.SetAt(name, mlineStyle);
-                    Tx.AddNewlyCreatedDBObject(mlineStyle, true);
+                    Tx.AddNewlyCreatedDBObject(mlineStyle, RightStatus);
                 }
                 else
                     db.CmlstyleID = (ObjectId)mlineDic[name];
                 Tx.Commit();
             }
         }
-        public static ObjectId LoadLineType(Database db, string typeName)
+        public  ObjectId LoadLineType(Database db, string typeName)
         {
             LinetypeTable ltt = db.LinetypeTableId.GetObject(OpenMode.ForRead) as LinetypeTable;
             if (!ltt.Has(typeName))
@@ -735,7 +745,7 @@ namespace ckx {
         /// 统计喷头数量
         /// </summary>
         [CommandMethod("pt")]
-        public static void GetPLT()
+        public  void GetPLT()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -820,7 +830,7 @@ namespace ckx {
                                 text.HorizontalMode = TextHorizontalMode.TextCenter;
                                 text.VerticalMode = TextVerticalMode.TextVerticalMid;
                                 text.AlignmentPoint = text.Position;
-                                db.AddToCKXModelSpace(text);
+                                AddToCKXModelSpace(db,text);
                             }
                             else
                             {
@@ -831,7 +841,7 @@ namespace ckx {
                                 text.HorizontalMode = TextHorizontalMode.TextCenter;
                                 text.VerticalMode = TextVerticalMode.TextVerticalMid;
                                 text.AlignmentPoint = text.Position;
-                                db.AddToCKXModelSpace(text);
+                                AddToCKXModelSpace(db,text);
                             }
 
                         }
@@ -849,7 +859,7 @@ namespace ckx {
         /// 统计多段线面积,按图层分开
         /// </summary>
         [CommandMethod("areatj")]
-        public static void getArea()
+        public  void getArea()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -932,7 +942,7 @@ namespace ckx {
                     else
                     {
                         foreach (Region reg in regs)
-                            db.AddToCKXModelSpace(reg);
+                            AddToCKXModelSpace(db,reg);
                     }
                 }
                 trans.Commit();
@@ -942,7 +952,7 @@ namespace ckx {
             public string layer { get; set; }
             public double Area { get; set; }
         }
-        public static double GetAreaSum(DBObjectCollection objs, ref List<Region> regs)
+        public  double GetAreaSum(DBObjectCollection objs, ref List<Region> regs)
         {
             try
             {
@@ -976,14 +986,14 @@ namespace ckx {
         /// 建筑按照模板图层拆分
         /// </summary>
         [CommandMethod("JZCF")]
-        public static void GetExportEntity()
+        public  void GetExportEntity()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                String path = db.GetCustomProperties("ExportPath");
+                String path = GetCustomProperties(db,"ExportPath");
                 Point3dCollection pts = new Point3dCollection();
                 if (path.Length < 1)
                 {
@@ -1010,7 +1020,7 @@ namespace ckx {
                 Point3d p3 = new Point3d(p2.X, p1.Y, 0);
                 pts.Add(p0); pts.Add(p1); pts.Add(p3); pts.Add(p2);
                 Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, pts, true);
-                db.AddToCKXModelSpace(pl);
+                AddToCKXModelSpace(db,pl);
                 String Folder;
                 PromptStringOptions pso = new PromptStringOptions("请输入文件夹名称");
                 PromptResult pr = ed.GetString(pso);
@@ -1019,9 +1029,9 @@ namespace ckx {
                 {
                     Folder = pr.StringResult;
                 }
-                db.SetCustomProperties("ExportPath", @path);
-                db.SetCustomProperties(Folder, p1 + "," + p2);
-                doc.ExportEntity(path, Folder, p1, p2);
+                SetCustomProperties(db,"ExportPath", @path);
+                SetCustomProperties(db, Folder, p1 + "," + p2);
+                ExportEntity(doc,path, Folder, p1, p2);
                 trans.Commit();
             }
         }
@@ -1029,7 +1039,7 @@ namespace ckx {
         /// 刷新拆分信息
         /// </summary>
         [CommandMethod("SXCF")]
-        public static void RefreshExportEntity()
+        public  void RefreshExportEntity()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -1067,7 +1077,7 @@ namespace ckx {
                         Point3d pt1 = new Point3d(stringTodouble(p1));
                         Point3d pt2 = new Point3d(stringTodouble(p2));
                         //ed.WriteMessage("p1="+p1+",p2="+p2);
-                        doc.ExportEntity(ExportPath, cp.key, pt1, pt2);
+                        ExportEntity(doc,ExportPath, cp.key, pt1, pt2);
                     }
                 }
             }
@@ -1082,7 +1092,7 @@ namespace ckx {
         /// <param name="folder">当前的文件夹名称</param>
         /// <param name="p1">左点</param>
         /// <param name="p2">右点</param>
-        public static void ExportEntity(this Document doc, string exportPath, string folder, Point3d p1, Point3d p2)
+        public  void ExportEntity( Document doc, string exportPath, string folder, Point3d p1, Point3d p2)
         {
             Editor ed = doc.Editor;
             Database db = doc.Database;
@@ -1400,7 +1410,7 @@ namespace ckx {
                         ltr.IsPlottable = false;
                         lt.UpgradeOpen();
                         lt.Add(ltr);
-                        trans.AddNewlyCreatedDBObject(ltr, true);
+                        trans.AddNewlyCreatedDBObject(ltr, RightStatus);
                         ltr.DowngradeOpen();
                         lt.DowngradeOpen();
                     }
@@ -1515,7 +1525,7 @@ namespace ckx {
                 }
             }
         }
-        public static void SetCustomProperties(this Database db, string key, string value)
+        public  void SetCustomProperties( Database db, string key, string value)
         {
             var inf = new DatabaseSummaryInfoBuilder(db.SummaryInfo);
             //如有则删除旧值
@@ -1525,7 +1535,7 @@ namespace ckx {
                 inf.CustomPropertyTable.Add(key, value);
             db.SummaryInfo = inf.ToDatabaseSummaryInfo();
         }
-        public static String GetCustomProperties(this Database db, string key)
+        public  String GetCustomProperties( Database db, string key)
         {
             var inf = new DatabaseSummaryInfoBuilder(db.SummaryInfo);
             if (inf.CustomPropertyTable[key] != null)
@@ -1540,7 +1550,7 @@ namespace ckx {
             public string key { get; set; }
             public string value { get; set; }
         }
-        public static double[] stringTodouble(string point)
+        public  double[] stringTodouble(string point)
         {
             double[] pts = new double[3] { 0, 0, 0 };
             string[] pt = point.Split(',');
@@ -1556,14 +1566,14 @@ namespace ckx {
         /// 图纸截取
         /// </summary>
         [CommandMethod("jzss")]
-        public static void GetScreenShot()
+        public  void GetScreenShot()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                String path = db.GetCustomProperties("ExportPath");
+                String path = GetCustomProperties(db,"ExportPath");
                 Point3dCollection pts = new Point3dCollection();
                 if (path.Length < 1)
                 {
@@ -1590,7 +1600,7 @@ namespace ckx {
                 Point3d p3 = new Point3d(p2.X, p1.Y, 0);
                 pts.Add(p0); pts.Add(p1); pts.Add(p3); pts.Add(p2);
                 Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, pts, true);
-                db.AddToCKXModelSpace(pl);
+                AddToCKXModelSpace(db,pl);
                 String Folder;
                 PromptStringOptions pso = new PromptStringOptions("\n请输入接图文件名称:");
                 PromptResult pr = ed.GetString(pso);
@@ -1599,9 +1609,9 @@ namespace ckx {
                 {
                     Folder = pr.StringResult;
                 }
-                db.SetCustomProperties("ExportPath", @path);
-                db.SetCustomProperties(Folder, p1 + "," + p2);
-                doc.ScreenShot(path, Folder, p1, p2);
+                SetCustomProperties(db,"ExportPath", @path);
+                SetCustomProperties(db,Folder, p1 + "," + p2);
+                ScreenShot(doc,path, Folder, p1, p2);
                 trans.Commit();
             }
         }
@@ -1609,7 +1619,7 @@ namespace ckx {
         /// 刷新图纸截取信息
         /// </summary>
         [CommandMethod("SXss")]
-        public static void RefreshScreenShot()
+        public  void RefreshScreenShot()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -1647,14 +1657,14 @@ namespace ckx {
                         Point3d pt1 = new Point3d(stringTodouble(p1));
                         Point3d pt2 = new Point3d(stringTodouble(p2));
                         //ed.WriteMessage("p1="+p1+",p2="+p2);
-                        doc.ScreenShot(ExportPath, cp.key, pt1, pt2);
+                        ScreenShot(doc,ExportPath, cp.key, pt1, pt2);
                     }
                 }
             }
 
 
         }
-        public static void ScreenShot(this Document doc, string exportPath, string fileName, Point3d p1, Point3d p2)
+        public  void ScreenShot( Document doc, string exportPath, string fileName, Point3d p1, Point3d p2)
         {
             String filePath = exportPath + @"\" + fileName + ".dwg";
             Point3dCollection pts = new Point3dCollection();
@@ -1692,10 +1702,10 @@ namespace ckx {
                     if (btr == null) return;
                     bt.UpgradeOpen();
                     bt.Add(btr);
-                    trans.AddNewlyCreatedDBObject(btr, true);
+                    trans.AddNewlyCreatedDBObject(btr, RightStatus);
                     BlockReference br = new BlockReference(new Point3d(0, 0, 0), bt[Name]);
-                    objectId = db.AddToCKXModelSpace(br);
-                    ObjectId newId = db.clipBlockTest(objectId, pts2);
+                    objectId = AddToCKXModelSpace(db,br);
+                    ObjectId newId = clipBlockTest(db,objectId, pts2);
                     try
                     {
                         Database db2 = new Database(false, true);
@@ -1710,7 +1720,7 @@ namespace ckx {
                             foreach (ObjectId objId in btr2)
                             {
                                 Entity ent = (Entity)tr.GetObject(objId, OpenMode.ForRead);
-                                db2.clipBlockTest(ent.ObjectId, pts2);
+                                clipBlockTest(db,ent.ObjectId, pts2);
                             }
                         }
                         db2.SaveAs(@filePath, DwgVersion.Current);
@@ -1728,7 +1738,7 @@ namespace ckx {
                 trans.Commit();
             }
         }
-        public static Point2dCollection Pts3DTo2D(Point3dCollection pts)
+        public  Point2dCollection Pts3DTo2D(Point3dCollection pts)
         {
             Point2dCollection pts2d = new Point2dCollection();
             for (int i = 0; i < pts.Count; i++)
@@ -1743,7 +1753,7 @@ namespace ckx {
         /// 刷新同名块属性
         /// </summary>
         [CommandMethod("sxk")]
-        public static void ReGenBlock()
+        public  void ReGenBlock()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -1812,7 +1822,7 @@ namespace ckx {
         /// <summary>
         /// 块自动编号
         /// </summary>
-        public static void AutoNumBlock()
+        public  void AutoNumBlock()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -1911,7 +1921,7 @@ namespace ckx {
         }
 
         [CommandMethod("test")]
-        public static void test()
+        public  void test()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -1921,10 +1931,10 @@ namespace ckx {
             Point3dCollection pts = new Point3dCollection();
             pts.Add(new Point3d(20, 20, 0));
             DBObjectCollection objs =l.GetSplitCurves(pts);
-            //db.AddToCKXModelSpace(l);
+            //AddToCKXModelSpace(db,l);
             foreach (Entity obj in objs)
             {
-                db.AddToCKXModelSpace(obj);
+                AddToCKXModelSpace(db,obj);
             }
             db.SetCustomProperties();
             */
@@ -1969,7 +1979,7 @@ namespace ckx {
                 if (pr.Status != PromptStatus.OK && pr.Status != PromptStatus.Keyword) return;
                 else if (pr.Status == PromptStatus.OK)
                 {
-                    db.AddToModelSpace(lt.GetEntity(), "STAIR");
+                    AddToModelSpace(db,lt.GetEntity(), "STAIR");
                 }*/
 
 
@@ -1978,8 +1988,8 @@ namespace ckx {
                 if (pr.Status != PromptStatus.OK) return;
                 else
                 {
-                    db.AddToModelSpace(jig.mypl, "STAIR");
-                    //db.AddToModelSpace(jig.myline, "STAIR") ;
+                    AddToModelSpace(db,jig.mypl, "STAIR");
+                    //AddToModelSpace(db,jig.myline, "STAIR") ;
                 }
                 trans.Commit();
             }
@@ -1987,7 +1997,7 @@ namespace ckx {
         }
         /*
         [CommandMethod("opm")]
-        public static void Initialize()
+        public  void Initialize()
         {
             CustomProp custProp = null;
             Assembly.LoadFrom("asdkOPMNetExt64.dll");
@@ -2004,7 +2014,7 @@ namespace ckx {
         /// </summary>
         /// <param name="db"></param>
         /// <returns></returns>
-        public static void SetCustomProperties(this Database db)
+        public  void SetCustomProperties( Database db)
         {
             if (db.SummaryInfo.Author != null) return;
             var inf = new DatabaseSummaryInfoBuilder(db.SummaryInfo);
@@ -2026,7 +2036,7 @@ namespace ckx {
         /// </summary>
         const string filterDictName = "ACAD_FILTER";
         const string spatialName = "SPATIAL";
-        public static ObjectId clipBlockTest(this Database db, ObjectId brId, Point2dCollection pts)
+        public  ObjectId clipBlockTest( Database db, ObjectId brId, Point2dCollection pts)
         {
             ObjectId objId = ObjectId.Null;
             using (Transaction tr = db.TransactionManager.StartTransaction())
@@ -2053,10 +2063,10 @@ namespace ckx {
                 {
                     DBDictionary fDict = new DBDictionary();
                     xDict.SetAt(filterDictName, fDict);
-                    tr.AddNewlyCreatedDBObject(fDict, true);
+                    tr.AddNewlyCreatedDBObject(fDict, RightStatus);
                     objId = fDict.SetAt(spatialName, sf);
                 }
-                tr.AddNewlyCreatedDBObject(sf, true);
+                tr.AddNewlyCreatedDBObject(sf, RightStatus);
                 tr.Commit();
             }
             return objId;
@@ -2068,7 +2078,7 @@ namespace ckx {
 
 
         [CommandMethod("stair")]
-        public static void Stair()
+        public  void Stair()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -2104,18 +2114,15 @@ namespace ckx {
                         pts.Add(point);
                         first = false;
                         // ed.WriteMessage("\n"+stair.FloorWidth + "," + stair.FloorHeight + "," + stair.LtW + "," + stair.LtH + "," + stair.LTN + "," + stair.ExtH + "," + stair.ExtW + "," + stair.ExtW2 + "," + stair.ExtH2 + "," + -stair.Cover + "," + stair.SW+","+ stair.Sh);
-                        db.DrawStair(point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
+                        DrawStair(db,point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
                     }
                     start++;
                     Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
                     point += vt;
                 }
                 Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, pts, false);
-                db.AddToCKXModelSpace(pl);
+                AddToCKXModelSpace(db,pl);
 
-                //Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, 2929.45, 0));
-                //db.DrawStair(ppr.Value, 2340, 3500, 234, 175,10, 1600,1400, 120,200, -4,200,400);
-                ed.WriteMessage("RightStatus="+ RightStatus);
             }
         }
 
@@ -2133,7 +2140,7 @@ namespace ckx {
         /// <param name="Cover">楼梯面混凝土厚度</param>
         ///  <param name="SH">楼梯面混凝土厚度</param>
         ///  <param name="SW">楼梯面混凝土宽度</param>
-        public static void DrawStair(this Database db, Point3d point, double FloorWidth, double FloorHeight, double LtW, double LtH, double LtN, double ExtW, double ExtW2, double ExtH, double ExtH2, double Cover, double SW, double Sh, ref Point2d lastPoint)
+        public  void DrawStair( Database db, Point3d point, double FloorWidth, double FloorHeight, double LtW, double LtH, double LtN, double ExtW, double ExtW2, double ExtH, double ExtH2, double Cover, double SW, double Sh, ref Point2d lastPoint)
         {
             Point2dCollection pts = new Point2dCollection()
                 , pts_1 = new Point2dCollection(),
@@ -2208,7 +2215,7 @@ namespace ckx {
                     line.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
                     line.LinetypeId = ltt["DASH"];
                 }
-                db.AddToModelSpace(line, "STAIR");
+                AddToModelSpace(db,line, "STAIR");
                 if (Cover != 0)
                 {
                     Polyline pl_c = pl.Clone() as Polyline;
@@ -2230,8 +2237,8 @@ namespace ckx {
                     }
                     cp2.AddVertexAt(cp2.NumberOfVertices, pl2.GetPoint2dAt(pl2.NumberOfVertices - 1), 0, 0, 0);
 
-                    db.AddToModelSpace(cp1, "STAIR");
-                    db.AddToModelSpace(cp2, "STAIR");
+                    AddToModelSpace(db,cp1, "STAIR");
+                    AddToModelSpace(db,cp2, "STAIR");
 
 
                     Point2dCollection ptsFs = new Point2dCollection();
@@ -2240,9 +2247,9 @@ namespace ckx {
                     //ptsFs.Add(new Point2d(cp1.GetPoint2dAt(3).X, cp2.GetPoint2dAt(1).Y + 900 + LtH));
                     ptsFs.Add(new Point2d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y + 900));
                     ptsFs.Add(new Point2d(ptCp2.X, ptCp2.Y + 900 + LtH - Cover));
-                    if (lastPoint != Point2d.Origin )
+                    if (lastPoint != Point2d.Origin)
                     {
-                        if(lastPoint.X> ptCp2.X)
+                        if (lastPoint.X > ptCp2.X)
                             ptsFs.Add(new Point2d(lastPoint.X, ptCp2.Y + 900 + LtH - Cover));
                         ptsFs.Add(lastPoint);
                     }
@@ -2251,17 +2258,17 @@ namespace ckx {
                     {
                         fs.AddVertexAt(i, ptsFs[i], 0, 0, 0);
                     }
-                    db.AddToModelSpace(fs, "J通-栏杆、百叶、格栅、配件");
+                    AddToModelSpace(db,fs, "J通-栏杆、百叶、格栅、配件");
 
                     Line l01 = new Line(new Point3d(ptCp2.X, ptCp2.Y + 900 + LtH - Cover, 0), new Point3d(ptCp2.X, ptCp2.Y - Cover + LtH, 0));
                     Line l02 = new Line(new Point3d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y + 900, 0), new Point3d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y, 0));
                     Line l03 = new Line(new Point3d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900, 0), new Point3d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y, 0));
                     Line l04 = new Line(new Point3d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y + 900, 0), new Point3d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y, 0));
 
-                    db.AddToModelSpace(l01, "J通-栏杆、百叶、格栅、配件");
-                    db.AddToModelSpace(l02, "J通-栏杆、百叶、格栅、配件");
-                    db.AddToModelSpace(l03, "J通-栏杆、百叶、格栅、配件");
-                    db.AddToModelSpace(l04, "J通-栏杆、百叶、格栅、配件");
+                    AddToModelSpace(db,l01, "J通-栏杆、百叶、格栅、配件");
+                    AddToModelSpace(db,l02, "J通-栏杆、百叶、格栅、配件");
+                    AddToModelSpace(db,l03, "J通-栏杆、百叶、格栅、配件");
+                    AddToModelSpace(db,l04, "J通-栏杆、百叶、格栅、配件");
                     lastPoint = new Point2d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900);
                 }
 
@@ -2269,13 +2276,13 @@ namespace ckx {
                 //    , new Point3d(pts2[pts2.Count-1].X, pts2[pts2.Count - 1].Y - ExtH, 0));
 
 
-                db.AddToModelSpace(pl, "STAIR");
-                db.AddToModelSpace(pl_1, "STAIR");
-                db.AddToModelSpace(pl2, "STAIR");
+                AddToModelSpace(db,pl, "STAIR");
+                AddToModelSpace(db,pl_1, "STAIR");
+                AddToModelSpace(db,pl2, "STAIR");
                 trans.Commit();
-                
+
             }
-           
+
         }
 
 
@@ -2283,3 +2290,4 @@ namespace ckx {
 
     }
 }
+

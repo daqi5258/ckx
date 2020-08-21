@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Command.cs" />
     <Compile Include="customPropertySample.cs" />
     <Compile Include="ElRecJig.cs" />
     <Compile Include="EntityChangeTools.cs" />
