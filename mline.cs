@@ -12,7 +12,7 @@ namespace ckx
 
 
 
-        public Point3d ptStart, ptlast, ptcurrent;
+        public Point3d  ptlast, ptcurrent;
         public bool flag = true;
         public int count;
         public double width = 240.0;

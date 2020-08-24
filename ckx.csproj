@@ -54,6 +54,7 @@
     <Compile Include="customPropertySample.cs" />
     <Compile Include="ElRecJig.cs" />
     <Compile Include="EntityChangeTools.cs" />
+    <Compile Include="FolderBrowserForm.cs" />
     <Compile Include="myStair.cs" />
     <Compile Include="StairForm.cs">
       <SubType>Form</SubType>

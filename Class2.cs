@@ -145,7 +145,7 @@ namespace ckx
                 //_sol.Extrude(_reg, _dist, 0);
                 _sol.CreateExtrudedSolid(_reg, _pt.GetVectorTo(_endPt), _swpOpts);
             }
-            catch (System.Exception ex)
+            catch 
             {
                 return false;
             }

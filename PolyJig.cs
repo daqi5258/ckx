@@ -9,7 +9,7 @@ namespace ckx
     class PolyJig : EntityJig
     {
 
-        public Point3d ptStart, ptlast, ptcurrent;
+        public Point3d ptStart, ptlast;
         public bool flag = true;
         public int count;
         public double width = 240.0;

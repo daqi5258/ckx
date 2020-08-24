@@ -75,7 +75,7 @@ namespace ckx
 
                 }
             }
-            catch (Exception Er)
+            catch  
             {
                 MessageBox.Show("\nError!不允许有空值和其他字符(楼层-除外)");
             }
@@ -148,7 +148,6 @@ namespace ckx
             {
                 int rowId = c.DataGridView.CurrentCell.RowIndex;
                 int colId = c.DataGridView.CurrentCell.ColumnIndex;
-                int Num;
                 double LtW = 0, FloorWidth = 0, FloorHeight = 0, LtH = 0, LTN = 0, ExtW = 0
                     , ExtW2 = 0, ExtH = 0, ExtH2 = 0, Cover = 0, Sh = 0, SW = 0;
                 if (InformData.Rows[rowId].Cells[1].Value != null)
@@ -184,7 +183,7 @@ namespace ckx
                     InformData.Rows[rowId].Cells[5].Value = LTN;
                     InformData.Rows[rowId].Cells[4].Value = LtH;
                 }
-                if (FloorHeight > 0 && LTN > 0 && colId == 5)
+                if (FloorHeight > 0 && LTN > 0 && (colId == 5 || colId == 2))
                 {
                     LtH = FloorHeight / LTN / 2;
                     InformData.Rows[rowId].Cells[4].Value = LtH;
@@ -206,5 +205,6 @@ namespace ckx
                 }*/
             }
         }
+
     }
 }

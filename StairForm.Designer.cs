@@ -60,6 +60,7 @@
             this.EXTH2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.SH = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.SW = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.LTType = new System.Windows.Forms.DataGridViewComboBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.InformData)).BeginInit();
             this.SuspendLayout();
             // 
@@ -109,12 +110,13 @@
             this.EXTW2,
             this.EXTH2,
             this.SH,
-            this.SW});
+            this.SW,
+            this.LTType});
             this.InformData.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.InformData.Location = new System.Drawing.Point(0, 34);
             this.InformData.Name = "InformData";
             this.InformData.RowTemplate.Height = 23;
-            this.InformData.Size = new System.Drawing.Size(1045, 416);
+            this.InformData.Size = new System.Drawing.Size(1144, 416);
             this.InformData.TabIndex = 2;
             this.InformData.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridView_CellValueChanged);
             this.InformData.CurrentCellDirtyStateChanged += new System.EventHandler(this.DataGridView_CurrentCellDirtyStateChanged);
@@ -227,6 +229,7 @@
             this.SH.HeaderText = "梯梁高";
             this.SH.Name = "SH";
             this.SH.Width = 80;
+            
             // 
             // SW
             // 
@@ -237,17 +240,25 @@
             this.SW.Name = "SW";
             this.SW.Width = 80;
             // 
+            // LTType
+            // 
+            this.LTType.HeaderText = "楼梯类型";
+            this.LTType.Items.AddRange(new object[] {
+            "双楼梯",
+            "单楼梯"});
+            this.LTType.Name = "LTType";
+
+            
+            // 
             // StairForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1045, 450);
+            this.ClientSize = new System.Drawing.Size(1144, 450);
             this.Controls.Add(this.InformData);
             this.Controls.Add(this.ClearButton);
             this.Controls.Add(this.SubmitButton);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MaximumSize = new System.Drawing.Size(1061, 488);
-            this.MinimumSize = new System.Drawing.Size(1061, 488);
             this.Name = "StairForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "楼梯参数输入";
@@ -274,5 +285,6 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn EXTH2;
         private System.Windows.Forms.DataGridViewTextBoxColumn SH;
         private System.Windows.Forms.DataGridViewTextBoxColumn SW;
+        private System.Windows.Forms.DataGridViewComboBoxColumn LTType;
     }
 }
