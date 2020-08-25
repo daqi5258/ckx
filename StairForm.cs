@@ -43,6 +43,7 @@ namespace ckx
                         stair.ExtH2 = double.Parse(row.Cells[10].Value.ToString());
                         stair.Sh = double.Parse(row.Cells[11].Value.ToString());
                         stair.SW = double.Parse(row.Cells[12].Value.ToString());
+                        stair.type = row.Cells[13].Value.ToString();
                         res.Add(stair);
                     }
                     else if (row.Cells[0].Value.ToString().IndexOf("-") > -1)
@@ -69,6 +70,7 @@ namespace ckx
                             stair.ExtH2 = double.Parse(row.Cells[10].Value.ToString());
                             stair.Sh = double.Parse(row.Cells[11].Value.ToString());
                             stair.SW = double.Parse(row.Cells[12].Value.ToString());
+                            stair.type =  row.Cells[13].Value.ToString();
                             res.Add(stair);
                         }
                     }
@@ -91,18 +93,6 @@ namespace ckx
 
         }
 
-        public static double ObjectToDouble(Object obj)
-        {
-            if (obj == null)
-                return 0.0;
-            else
-            {
-                string str = obj.ToString();
-                str = Regex.Replace(str, @"[^0-9]+.?\d?", "");
-                return int.Parse(str); ;
-            }
-        }
-
         private void ClearButton_Click(object sender, EventArgs e)
         {
             InformData.Rows.Clear();
@@ -112,6 +102,20 @@ namespace ckx
         private void DataGridView_DefaultValuesNeeded(object sender, DataGridViewRowEventArgs e)
         {
             int index = e.Row.Index;
+            if (index == 0)
+            {
+               
+                e.Row.Cells[3].Value =  "260";
+                e.Row.Cells[4].Value =  "175"; 
+                e.Row.Cells[6].Value = "20";
+                e.Row.Cells[7].Value ="120";
+                e.Row.Cells[8].Value = "1200";
+                e.Row.Cells[9].Value = "1200";
+                e.Row.Cells[10].Value = "100";
+                e.Row.Cells[11].Value = "400";
+                e.Row.Cells[12].Value = "200";
+                e.Row.Cells[13].Value = "双楼梯";
+            }
             if (index > 0)
             {
                 //e.Row.Cells[0].Value = InformData.Rows[index - 1].Cells[0].Value;
@@ -127,6 +131,7 @@ namespace ckx
                 e.Row.Cells[10].Value = InformData.Rows[index - 1].Cells[10].Value;
                 e.Row.Cells[11].Value = InformData.Rows[index - 1].Cells[11].Value;
                 e.Row.Cells[12].Value = InformData.Rows[index - 1].Cells[12].Value;
+                e.Row.Cells[13].Value = InformData.Rows[index - 1].Cells[13].Value;
             }
 
         }
@@ -175,20 +180,37 @@ namespace ckx
                     Sh = double.Parse(InformData.Rows[rowId].Cells[11].Value.ToString());
                 if (InformData.Rows[rowId].Cells[12].Value != null)
                     SW = double.Parse(InformData.Rows[rowId].Cells[12].Value.ToString());
-
-                if (FloorHeight > 0 && LtH > 0 && colId == 4)
+                string type = InformData.Rows[rowId].Cells[13].Value.ToString();
+                if (FloorHeight > 0 && LtH > 0 && (colId == 4|| colId == 2))
                 {
-                    LTN = Math.Ceiling(FloorHeight / LtH / 2);
-                    LtH = FloorHeight / LTN / 2;
-                    InformData.Rows[rowId].Cells[5].Value = LTN;
-                    InformData.Rows[rowId].Cells[4].Value = LtH;
+                    if (type == "双楼梯")
+                    {
+                        LTN = Math.Ceiling(FloorHeight / LtH / 2);
+                        LtH = FloorHeight / LTN / 2;
+                        InformData.Rows[rowId].Cells[5].Value = LTN;
+                        InformData.Rows[rowId].Cells[4].Value = LtH;
+                    }
+                    else
+                    {
+                        LTN = Math.Ceiling(FloorHeight / LtH );
+                        LtH = FloorHeight / LTN ;
+                        InformData.Rows[rowId].Cells[5].Value = LTN;
+                        InformData.Rows[rowId].Cells[4].Value = LtH;
+                    }
                 }
                 if (FloorHeight > 0 && LTN > 0 && (colId == 5 || colId == 2))
                 {
-                    LtH = FloorHeight / LTN / 2;
-                    InformData.Rows[rowId].Cells[4].Value = LtH;
+                    if (type == "双楼梯")
+                    {
+                        LtH = FloorHeight / LTN / 2;
+                        InformData.Rows[rowId].Cells[4].Value = LtH;
+                    }
+                    else
+                    {
+                        LtH = FloorHeight / LTN ;
+                        InformData.Rows[rowId].Cells[4].Value = LtH;
+                    }
                 }
-
                 if (ExtW > 0 && ExtW2 > 0 && LTN > 0 && LtW > 0)
                 {
                     FloorWidth = ExtW + ExtW2 + (LTN - 1) * LtW;
@@ -206,5 +228,6 @@ namespace ckx
             }
         }
 
+        
     }
 }

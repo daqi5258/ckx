@@ -229,7 +229,6 @@
             this.SH.HeaderText = "梯梁高";
             this.SH.Name = "SH";
             this.SH.Width = 80;
-            
             // 
             // SW
             // 
@@ -247,8 +246,6 @@
             "双楼梯",
             "单楼梯"});
             this.LTType.Name = "LTType";
-
-            
             // 
             // StairForm
             // 
@@ -259,6 +256,8 @@
             this.Controls.Add(this.ClearButton);
             this.Controls.Add(this.SubmitButton);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximumSize = new System.Drawing.Size(1160, 488);
+            this.MinimumSize = new System.Drawing.Size(1160, 488);
             this.Name = "StairForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "楼梯参数输入";

@@ -3,9 +3,13 @@ using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.Internal.PropertyInspector;
 using Autodesk.AutoCAD.Runtime;
-//using OPMNetSample;
 using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 [assembly: CommandClass(typeof(ckx.main))]
@@ -25,11 +29,11 @@ namespace ckx {
             {
                 Point3d point = ppr.Value;
                 Point2d lastP = Point2d.Origin;
-                /*
+
                 List<myStair> stairs = new List<myStair>();
                 StairForm stairForm = new StairForm();
                 Application.ShowModalDialog(stairForm);
-                if (stairForm.DialogResult == DialogResult.OK)
+                if (stairForm.DialogResult == System.Windows.Forms.DialogResult.OK)
                 {
                     stairForm.ShowInTaskbar = false;
                     stairs = stairForm.res;
@@ -40,21 +44,31 @@ namespace ckx {
                 Point3dCollection pts = new Point3dCollection();
                 foreach (var stair in sortStairs)
                 {
-
-                    if (start == stair.Num)
+                    ed.WriteMessage("\nnum="+stair.Num+",type="+stair.type);
+                    if (stair.type == "双楼梯")
                     {
-                        Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
-                        point += vt2;
-                        pts.Add(point);
-                        // ed.WriteMessage("\n"+stair.FloorWidth + "," + stair.FloorHeight + "," + stair.LtW + "," + stair.LtH + "," + stair.LTN + "," + stair.ExtH + "," + stair.ExtW + "," + stair.ExtW2 + "," + stair.ExtH2 + "," + -stair.Cover + "," + stair.SW+","+ stair.Sh);
-                        db.DrawStair(point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
+                        if (start == stair.Num)
+                        {
+                            Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
+                            point += vt2;
+                            pts.Add(point);
+                            // ed.WriteMessage("\n"+stair.FloorWidth + "," + stair.FloorHeight + "," + stair.LtW + "," + stair.LtH + "," + stair.LTN + "," + stair.ExtH + "," + stair.ExtW + "," + stair.ExtW2 + "," + stair.ExtH2 + "," + -stair.Cover + "," + stair.SW+","+ stair.Sh);
+                            db.DrawStair(point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
+                        }
+                        start++;
+                        Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
+                        point += vt;
                     }
-                    start++;
-                    Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
-                    point += vt;
+                    else
+                    {
+                        Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight , 0));
+                        point += vt;
+                        start++;
+                        db.HalfStair(point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
+                    }
                 }
-                */
-                db.HalfStair(point, 0, 3600, 260, 150, 12, 1600, 1200, 120, 100, -20, 200, 400, ref lastP);
+
+                //db.HalfStair(point, 0, 3600, 260, 150, 12, 1600, 1200, 120, 100, -20, 200, 400, ref lastP);
 
 
                 // Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, pts, false);
@@ -279,10 +293,10 @@ namespace ckx {
                 AddToModelSpace(db, l03, "J通-栏杆、百叶、格栅、配件");
 
                 Polyline pl2 = new Polyline();
-                pl2.AddVertexAt(0, new Point2d(point.X, point.Y),0,0,0);
-                pl2.AddVertexAt(1, new Point2d(point.X, point.Y-ExtH2), 0, 0, 0);
+                pl2.AddVertexAt(0, new Point2d(point.X, point.Y), 0, 0, 0);
+                pl2.AddVertexAt(1, new Point2d(point.X, point.Y - ExtH2), 0, 0, 0);
                 pl2.AddVertexAt(2, new Point2d(point.X + ExtW - SW, point.Y - ExtH2), 0, 0, 0);
-                pl2.AddVertexAt(3, new Point2d(point.X+ExtW-SW, point.Y- Sh), 0, 0, 0);
+                pl2.AddVertexAt(3, new Point2d(point.X + ExtW - SW, point.Y - Sh), 0, 0, 0);
                 pl2.AddVertexAt(4, new Point2d(point.X + ExtW, point.Y - Sh), 0, 0, 0);
                 pl2.AddVertexAt(5, p0, 0, 0, 0);
                 AddToModelSpace(db, pl2, "STAIR");
@@ -374,5 +388,48 @@ namespace ckx {
             }
             return objectId;
         }
+
+
+
+        /*
+        public static IDictionary<string, object> GetOPMProperties(ObjectId id)
+        {
+            Dictionary<string, object> map = new Dictionary<string, object>();
+            IntPtr pUnk = ObjectPropertyManagerPropertyUtility.GetIUnknownFromObjectId(id);
+            if (pUnk != IntPtr.Zero)
+            {
+                using (CollectionVector properties = ObjectPropertyManagerProperties.GetProperties(id, false, false))
+                {
+                    int cnt = properties.Count();
+                    if (cnt != 0)
+                    {
+                        using (CategoryCollectable category = properties.Item(0) as CategoryCollectable)
+                        {
+                            CollectionVector props = category.Properties;
+                            int propCount = props.Count();
+                            for (int j = 0; j < propCount; j++)
+                            {
+                                using (PropertyCollectable prop = props.Item(j) as PropertyCollectable)
+                                {
+                                    if (prop == null)
+                                        continue;
+                                    object value = null;
+                                    if (prop.GetValue(pUnk, ref value) && value != null)
+                                    {
+                                        if (!map.ContainsKey(prop.Name))
+                                            map[prop.Name] = value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Marshal.Release(pUnk);
+            }
+            return map;
+        }
+
+    */
+
     }
 }

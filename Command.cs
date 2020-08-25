@@ -1024,11 +1024,14 @@ namespace ckx {
                         path = dialog.SelectedPath;  // 获取文件的路径
                     }
                 }*/
-                FolderBrowserForm dialog = new FolderBrowserForm();
-                dialog.DirectoryPath = @"\\Hcdata\和创施工图设计平台\";
-                if (dialog.ShowDialog(Application.MainWindow) == DialogResult.OK)
+                if (path.Length < 1)
                 {
-                    path = dialog.DirectoryPath;
+                    FolderBrowserForm dialog = new FolderBrowserForm();
+                    dialog.DirectoryPath = @"\\Hcdata\和创施工图设计平台\";
+                    if (dialog.ShowDialog(Application.MainWindow) == DialogResult.OK)
+                    {
+                        path = dialog.DirectoryPath;
+                    }
                 }
                 PromptPointResult ppr1 = ed.GetPoint("\n请输入第一点:");
                 if (ppr1.Status != PromptStatus.OK) return;
@@ -2123,9 +2126,8 @@ namespace ckx {
 
 
         [CommandMethod("stair")]
-        public void Stair()
+        public  void Stair()
         {
-            Quit();
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
@@ -2135,11 +2137,12 @@ namespace ckx {
             else
             {
                 Point3d point = ppr.Value;
+                Point2d lastP = Point2d.Origin;
 
                 List<myStair> stairs = new List<myStair>();
                 StairForm stairForm = new StairForm();
                 Application.ShowModalDialog(stairForm);
-                if (stairForm.DialogResult == DialogResult.OK)
+                if (stairForm.DialogResult == System.Windows.Forms.DialogResult.OK)
                 {
                     stairForm.ShowInTaskbar = false;
                     stairs = stairForm.res;
@@ -2148,25 +2151,35 @@ namespace ckx {
                 var sortStairs = (from q in stairs orderby q.Num ascending select q).ToList();
                 int start = sortStairs[0].Num;
                 Point3dCollection pts = new Point3dCollection();
-                Point2d lastP = Point2d.Origin;
+                pts.Add(point);
                 foreach (var stair in sortStairs)
                 {
-
-                    if (start == stair.Num)
+                    if (stair.type == "双楼梯")
                     {
-                        Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
-                        point += vt2;
-                        pts.Add(point);
-                        // ed.WriteMessage("\n"+stair.FloorWidth + "," + stair.FloorHeight + "," + stair.LtW + "," + stair.LtH + "," + stair.LTN + "," + stair.ExtH + "," + stair.ExtW + "," + stair.ExtW2 + "," + stair.ExtH2 + "," + -stair.Cover + "," + stair.SW+","+ stair.Sh);
-                        DrawStair(db, point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
+                        if (start == stair.Num)
+                        {
+                            Vector3d vt2 = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
+                            point += vt2;
+                            pts.Add(point);
+                            // ed.WriteMessage("\n"+stair.FloorWidth + "," + stair.FloorHeight + "," + stair.LtW + "," + stair.LtH + "," + stair.LTN + "," + stair.ExtH + "," + stair.ExtW + "," + stair.ExtW2 + "," + stair.ExtH2 + "," + -stair.Cover + "," + stair.SW+","+ stair.Sh);
+                            db.DrawStair(point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
+                        }
+                        start++;
+                        Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
+                        point += vt;
                     }
-                    start++;
-                    Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight / 2, 0));
-                    point += vt;
+                    else
+                    {
+                        Vector3d vt = Point3d.Origin.GetVectorTo(new Point3d(0, stair.FloorHeight, 0));
+                        point += vt;
+                        start++;
+                        db.HalfStair(point, stair.FloorWidth, stair.FloorHeight, stair.LtW, stair.LtH, stair.LTN, stair.ExtW, stair.ExtW2, stair.ExtH, stair.ExtH2, -stair.Cover, stair.SW, stair.Sh, ref lastP);
+                    }
                 }
-                Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, pts, false);
-                AddToCKXModelSpace(db, pl);
 
+                //db.HalfStair(point, 0, 3600, 260, 150, 12, 1600, 1200, 120, 100, -20, 200, 400, ref lastP);
+                 Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, pts, false);
+                 db.AddToModelSpace(pl,"参考线不打印");
             }
         }
 

@@ -31,6 +31,7 @@ namespace ckx
         public double Sh { get; set; }
         //梁宽
         public double SW { get; set; }
-
+        //楼梯类型
+        public string type { get; set; }
     }
 }
