@@ -69,6 +69,7 @@ namespace ckx
 
                 for (int i = 0; i < selectEntity.Length; i++)
                 {
+                   
                     selectEntity[i].TransformBy(mtBack);
                     selectEntity[i].TransformBy(mirrorMt);
 
@@ -101,8 +102,31 @@ namespace ckx
             pStart = p1;
             Matrix3dType = MatrixType;
         }
-
-
+        public EntityChangeTools(Entity[] select, Point3d p1, String MatrixType)
+        {
+            //selectEntity = select;
+            selectEntity = select;
+            pStart = p1;
+            Matrix3dType = MatrixType;
+        }
+        public EntityChangeTools(Entity select, Point3d p1, String MatrixType)
+        {
+            //selectEntity = select;
+            selectEntity[0] = select;
+            pStart = p1;
+            Matrix3dType = MatrixType;
+        }
+        public EntityChangeTools(List<Entity> select, Point3d p1, String MatrixType)
+        {
+            Entity[] regs = new Entity[select.Count];
+            for (int i = 0; i < select.Count; i++)
+            {
+                regs[i] = select[i];
+            }
+            selectEntity = regs;
+            pStart = p1;
+            Matrix3dType = MatrixType;
+        }
         public EntityChangeTools(List<Region> selectRegion, Point3d p1, String MatrixType)
         {
             Region[] regs = new Region[selectRegion.Count];

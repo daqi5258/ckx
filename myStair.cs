@@ -7,7 +7,7 @@ namespace ckx
         //左平台起点
         public Point3d point { get; set; }
         //楼层号
-        public int Num { get; set; }
+        public string Num { get; set; }
         //层宽
         public double FloorWidth { get; set; }
         //层高

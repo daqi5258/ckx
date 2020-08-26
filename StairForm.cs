@@ -17,20 +17,22 @@ namespace ckx
         {
             if (res.Count > 0)
                 res.Clear();
-            int MaxFl = 0, MinFL = 999;
+            //int MaxFl = 0, MinFL = 999;
             try
             {
                 for (int n = 0; n < InformData.Rows.Count - 1; n++)
                 {
                     DataGridViewRow row = InformData.Rows[n];
-                    if (row.Cells[0].Value.ToString().IndexOf("-") < 0 && Regex.IsMatch(row.Cells[0].Value.ToString(), @"^[1-9]\d*$"))
-                    {
+                    
+                    //if (row.Cells[0].Value.ToString().IndexOf("-") < 0 && Regex.IsMatch(row.Cells[0].Value.ToString(), @"^[1-9]\d*$"))
+                    //{
                         myStair stair = new myStair();
-                        stair.Num = int.Parse(row.Cells[0].Value.ToString());
+                        stair.Num = row.Cells[0].Value.ToString();
+                        /*
                         if (stair.Num > MaxFl)
                             MaxFl = stair.Num;
                         if (stair.Num < MinFL)
-                            MinFL = stair.Num;
+                            MinFL = stair.Num;*/
                         stair.FloorWidth = double.Parse(row.Cells[1].Value.ToString());
                         stair.FloorHeight = double.Parse(row.Cells[2].Value.ToString());
                         stair.LtW = double.Parse(row.Cells[3].Value.ToString());
@@ -45,8 +47,8 @@ namespace ckx
                         stair.SW = double.Parse(row.Cells[12].Value.ToString());
                         stair.type = row.Cells[13].Value.ToString();
                         res.Add(stair);
-                    }
-                    else if (row.Cells[0].Value.ToString().IndexOf("-") > -1)
+                    //}
+                    /*else if (row.Cells[0].Value.ToString().IndexOf("-") > -1){
                     {
                         int start = int.Parse(row.Cells[0].Value.ToString().Substring(0, row.Cells[0].Value.ToString().IndexOf("-")));
                         int end = int.Parse(row.Cells[0].Value.ToString().Substring(row.Cells[0].Value.ToString().IndexOf("-") + 1));
@@ -73,7 +75,7 @@ namespace ckx
                             stair.type =  row.Cells[13].Value.ToString();
                             res.Add(stair);
                         }
-                    }
+                    }*/
 
                 }
             }
@@ -81,6 +83,7 @@ namespace ckx
             {
                 MessageBox.Show("\nError!不允许有空值和其他字符(楼层-除外)");
             }
+            /*
             if ((MaxFl - MinFL) == res.Count - 1 && res.Count > 0)
             {
                 this.DialogResult = DialogResult.OK;
@@ -89,8 +92,8 @@ namespace ckx
             else
             {
                 MessageBox.Show("楼层数目不对,实际楼层有:" + res.Count + ",但是最大楼层为:" + MaxFl + ",请检查!");
-            }
-
+            }*/
+            this.DialogResult = DialogResult.OK;
         }
 
         private void ClearButton_Click(object sender, EventArgs e)

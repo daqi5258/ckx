@@ -18,7 +18,8 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -71,6 +72,7 @@
     <Compile Include="PolyJig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Stair.cs" />
+    <Compile Include="XP.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="StairForm.resx">
