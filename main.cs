@@ -7,6 +7,7 @@ using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
+using Color = Autodesk.AutoCAD.Colors.Color;
 
 [assembly: CommandClass(typeof(ckx.main))]
 namespace ckx {
@@ -27,7 +28,7 @@ namespace ckx {
                 Point2d lastP = Point2d.Origin;
 
                 List<myStair> stairs = new List<myStair>();
-                StairForm stairForm = new StairForm();
+                StairForm stairForm = new StairForm(stairs);
                 Application.ShowModalDialog(stairForm);
                 if (stairForm.DialogResult == System.Windows.Forms.DialogResult.OK)
                 {
@@ -135,7 +136,7 @@ namespace ckx {
                 Polyline pl = new Polyline();
                 Polyline pl_1 = new Polyline();
                 Polyline pl2 = new Polyline();
-                pl2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+                //pl2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
                 for (int i = 0; i < pts.Count; i++)
                 {
                     pl.AddVertexAt(i, pts[i], 0, 0, 0);
@@ -148,23 +149,25 @@ namespace ckx {
                 {
                     pl2.AddVertexAt(i, pts2[i], 0, 0, 0);
                 }
-
                 Polyline line = new Polyline();
                 line.AddVertexAt(0, new Point2d(pts2[1].X, pts2[1].Y - ExtH), 0, 0, 0);
                 line.AddVertexAt(1, new Point2d(pts2[pts2.Count - 1].X, pts2[pts2.Count - 1].Y - ExtH), 0, 0, 0);
                 if (lastPoint != Point2d.Origin && lastPoint.X > pts2[pts2.Count - 1].X)
                 {
-                    line.AddVertexAt(2, new Point2d(lastPoint.X, pts2[pts2.Count - 1].Y - ExtH), 0, 0, 0);
+                    line.AddVertexAt(2, new Point2d(lastPoint.X-Cover, pts2[pts2.Count - 1].Y - ExtH), 0, 0, 0);
                 }
                 LinetypeTable ltt = db.LinetypeTableId.GetObject(OpenMode.ForRead) as LinetypeTable;
-                if (ltt.Has("DASH"))
-                {
-                    line.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
-                    line.LinetypeId = ltt["DASH"];
-                }
                 db.AddToModelSpace(line, "STAIR");
                 if (Cover != 0)
                 {
+                    int step = 2;
+                    if (lastPoint.X > pts2[pts2.Count - 1].X)
+                    {
+                        step = 3;
+                        pts2.Add(new Point2d(lastPoint.X-Cover, pts2[pts2.Count - 1].Y));
+                        pl2.AddVertexAt(pl2.NumberOfVertices, new Point2d(lastPoint.X - Cover, pts2[pts2.Count - 1].Y), 0, 0, 0);
+                    }
+                    //楼梯表层
                     Polyline pl_c = pl.Clone() as Polyline;
                     pl_c.AddVertexAt(0, new Point2d(point.X, point.Y), 0, 0, 0);
                     pl_c.AddVertexAt(pl_c.NumberOfVertices, new Point2d(plast.X + ExtW2, plast.Y), 0, 0, 0);
@@ -172,34 +175,46 @@ namespace ckx {
                     cp1.AddVertexAt(0, pl_c.GetPoint2dAt(0), 0, 0, 0);
                     cp1.AddVertexAt(cp1.NumberOfVertices, pl_c.GetPoint2dAt(pl_c.NumberOfVertices - 1), 0, 0, 0);
                     Polyline cp2 = pl2.GetOffsetCurves(Cover)[0] as Polyline;
-                    cp2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+                   // cp2.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
                     cp2.AddVertexAt(0, pl2.GetPoint2dAt(0), 0, 0, 0);
-                    Point2d ptCp2 = cp2.GetPoint2dAt(cp2.NumberOfVertices - 1);
+                    Point2d ptCp2 = cp2.GetPoint2dAt(cp2.NumberOfVertices - step);
                     if (lastPoint != Point2d.Origin && lastPoint.X > ptCp2.X)
                     {
+                        /*
                         cp2.RemoveVertexAt(cp2.NumberOfVertices - 1);
                         cp2.AddVertexAt(cp2.NumberOfVertices, new Point2d(ptCp2.X, ptCp2.Y - Cover), 0, 0, 0);
                         cp2.AddVertexAt(cp2.NumberOfVertices, new Point2d(lastPoint.X, cp2.GetPoint2dAt(cp2.NumberOfVertices - 1).Y), 0, 0, 0);
                         cp2.AddVertexAt(cp2.NumberOfVertices, new Point2d(lastPoint.X, pl2.GetPoint2dAt(pl2.NumberOfVertices - 1).Y), 0, 0, 0);
-                    }
-                    cp2.AddVertexAt(cp2.NumberOfVertices, pl2.GetPoint2dAt(pl2.NumberOfVertices - 1), 0, 0, 0);
+                    */
+                     }
+                    cp2.AddVertexAt(cp2.NumberOfVertices, pts2[pts2.Count-1], 0, 0, 0);
 
-                    db.AddToModelSpace(cp1, "STAIR");
-                    db.AddToModelSpace(cp2, "STAIR");
+                    db.AddToModelSpace(cp1, "J通-粉刷线");
+                    db.AddToModelSpace(cp2, "J通-粉刷线");
 
-
+                    //扶手竖线
+                    Line l01 = new Line(new Point3d(ptCp2.X, ptCp2.Y + 900  , 0), new Point3d(ptCp2.X, ptCp2.Y  , 0));
+                    Line l02 = new Line(new Point3d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y + 900, 0), new Point3d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y, 0));
+                    Line l03 = new Line(new Point3d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900, 0), new Point3d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y, 0));
+                    Line l04 = new Line(new Point3d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y + 900, 0), new Point3d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y, 0));
+                    db.AddToModelSpace(l01, "J通-栏杆、百叶、格栅、配件");
+                    db.AddToModelSpace(l02, "J通-栏杆、百叶、格栅、配件");
+                    db.AddToModelSpace(l03, "J通-栏杆、百叶、格栅、配件");
+                    db.AddToModelSpace(l04, "J通-栏杆、百叶、格栅、配件");
+                    
+                    //扶手上部
                     Point2dCollection ptsFs = new Point2dCollection();
-                    ptsFs.Add(new Point2d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900));
-                    ptsFs.Add(new Point2d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y + 900));
-                    //ptsFs.Add(new Point2d(cp1.GetPoint2dAt(3).X, cp2.GetPoint2dAt(1).Y + 900 + LtH));
-                    ptsFs.Add(new Point2d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y + 900));
-                    ptsFs.Add(new Point2d(ptCp2.X, ptCp2.Y + 900 + LtH - Cover));
                     if (lastPoint != Point2d.Origin)
                     {
-                        if (lastPoint.X > ptCp2.X)
-                            ptsFs.Add(new Point2d(lastPoint.X, ptCp2.Y + 900 + LtH - Cover));
                         ptsFs.Add(lastPoint);
+                        if(lastPoint.X> ptCp2.X)
+                            ptsFs.Add(new Point2d(lastPoint.X, ptCp2.Y + 900));
                     }
+                    ptsFs.Add(new Point2d(ptCp2.X, ptCp2.Y + 900));
+                    ptsFs.Add(new Point2d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y + 900));
+                    ptsFs.Add(new Point2d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y + 900));
+                    ptsFs.Add(new Point2d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900));
+                    
                     Polyline fs = new Polyline();
                     for (int i = 0; i < ptsFs.Count; i++)
                     {
@@ -207,24 +222,33 @@ namespace ckx {
                     }
                     db.AddToModelSpace(fs, "J通-栏杆、百叶、格栅、配件");
 
-                    Line l01 = new Line(new Point3d(ptCp2.X, ptCp2.Y + 900 + LtH - Cover, 0), new Point3d(ptCp2.X, ptCp2.Y - Cover + LtH, 0));
-                    Line l02 = new Line(new Point3d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y + 900, 0), new Point3d(cp2.GetPoint2dAt(1).X, cp2.GetPoint2dAt(1).Y, 0));
-                    Line l03 = new Line(new Point3d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900, 0), new Point3d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y, 0));
-                    Line l04 = new Line(new Point3d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y + 900, 0), new Point3d(cp1.GetPoint2dAt(3).X, cp1.GetPoint2dAt(3).Y, 0));
+                    //碰头线
+                    Point2dCollection ptsPTX = new Point2dCollection();
+                    //ptsPTX.Add(new Point2d(point.X, point.Y));
+                    ptsPTX.Add(new Point2d(point.X, point.Y) + new Point2d(0, 2000).GetAsVector());
+                    ptsPTX.Add(ptsPTX[ptsPTX.Count - 1] + new Point2d(ExtW - 300, 0).GetAsVector());
+                    ptsPTX.Add(ptsPTX[ptsPTX.Count - 1] + new Point2d(0, 200).GetAsVector());
+                    ptsPTX.Add(new Point2d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y) + new Point2d(0, 2000).GetAsVector());
+                    ptsPTX.Add(ptsPTX[ptsPTX.Count - 1] + new Point2d(300, 0).GetAsVector());
+                    ptsPTX.Add(ptsPTX[ptsPTX.Count - 1] + new Point2d(0, -200).GetAsVector());
+                    ptsPTX.Add(ptsPTX[ptsPTX.Count - 1] + new Point2d(ExtW2-300, 0).GetAsVector());
+                    Polyline plPTX = new Polyline();
+                    for (int i = 0; i < ptsPTX.Count; i++)
+                    {
+                        plPTX.AddVertexAt(i, ptsPTX[i], 0, 0, 0);
+                    }
 
-                    db.AddToModelSpace(l01, "J通-栏杆、百叶、格栅、配件");
-                    db.AddToModelSpace(l02, "J通-栏杆、百叶、格栅、配件");
-                    db.AddToModelSpace(l03, "J通-栏杆、百叶、格栅、配件");
-                    db.AddToModelSpace(l04, "J通-栏杆、百叶、格栅、配件");
+
                     lastPoint = new Point2d(cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).X, cp1.GetPoint2dAt(cp1.NumberOfVertices - 3).Y + 900);
+
+                    AddToModelSpace(db,plPTX,"参考线不打印");
                 }
 
-                // Line line = new Line(new Point3d(pts2[1].X, pts2[1].Y - ExtH, 0)
-                //    , new Point3d(pts2[pts2.Count-1].X, pts2[pts2.Count - 1].Y - ExtH, 0));
+                
 
                 ObjectIdCollection objs = new ObjectIdCollection();
-                objs.Add(db.AddToModelSpace(pl, "STAIR"));
-                objs.Add(db.AddToModelSpace(pl_1, "STAIR"));
+                objs.Add(db.AddToModelSpace(pl, "WAll"));
+                objs.Add(db.AddToModelSpace(pl_1, "WAll"));
                 db.AddToModelSpace(pl2, "STAIR");
 
 
@@ -239,10 +263,14 @@ namespace ckx {
                 dim.XLine1Point = new Point3d(point.X, point.Y - FloorHeight / 2, 0);
                 dim.XLine2Point = new Point3d(point.X, point.Y + FloorHeight / 2, 0);
                 dim.DimLinePoint = new Point3d(point.X - 300, point.Y, 0);
-                dim.DimensionText = num;
+                dim.DimensionText = num + "F";
                 AddToModelSpace(db, dim, "");
-
+                //层平面图
                 StairPM(db, point, FloorWidth, FloorHeight, LtW, LtN, ExtW, ExtW2, 50, 1160, num);
+
+
+
+
                 trans.Commit();
 
             }
@@ -279,16 +307,17 @@ namespace ckx {
                     Polyline pl_1 = pl.GetOffsetCurves(Cover)[0] as Polyline;
                     pl_1.AddVertexAt(0, new Point2d(point.X, point.Y), 0, 0, 0);
                     pl_1.AddVertexAt(pl_1.NumberOfVertices, plast, 0, 0, 0);
-                    AddToModelSpace(db, pl_1, "STAIR");
+                    AddToModelSpace(db, pl_1, "WALL");
                 }
 
                 Line line = new Line(new Point3d(p0.X, p0.Y - LtH - ExtH, 0), new Point3d(plast.X, plast.Y - ExtH, 0));
                 LinetypeTable ltt = db.LinetypeTableId.GetObject(OpenMode.ForRead) as LinetypeTable;
+               /*
                 if (ltt.Has("DASH"))
                 {
                     line.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
                     line.LinetypeId = ltt["DASH"];
-                }
+                }*/
                 AddToModelSpace(db, line, "STAIR");
                 Line l01 = new Line(new Point3d(p0.X - Cover, p0.Y - Cover + 900, 0), new Point3d(p0.X - Cover, p0.Y - Cover, 0));
                 Line l02 = new Line(new Point3d(plast.X - Cover, plast.Y - Cover + LtH, 0), new Point3d(plast.X - Cover, plast.Y - Cover + LtH + 900, 0));
@@ -304,13 +333,13 @@ namespace ckx {
                 pl2.AddVertexAt(3, new Point2d(point.X + ExtW - SW, point.Y - Sh), 0, 0, 0);
                 pl2.AddVertexAt(4, new Point2d(point.X + ExtW, point.Y - Sh), 0, 0, 0);
                 pl2.AddVertexAt(5, p0, 0, 0, 0);
-                AddToModelSpace(db, pl2, "STAIR");
+                AddToModelSpace(db, pl2, "WALL");
 
                 AlignedDimension dim = new AlignedDimension();
                 dim.XLine1Point = new Point3d(point.X, point.Y - FloorHeight, 0);
-                dim.XLine2Point = new Point3d(point.X, point.Y , 0);
+                dim.XLine2Point = new Point3d(point.X, point.Y, 0);
                 dim.DimLinePoint = new Point3d(point.X - 300, point.Y, 0);
-                dim.DimensionText = num;
+                dim.DimensionText = num + "F"; ;
                 AddToModelSpace(db, dim, "");
                 trans.Commit();
             }
@@ -402,7 +431,7 @@ namespace ckx {
                 dim.XLine1Point = new Point3d(ptR.X, ptR.Y - FloorHeight / 2, 0);
                 dim.XLine2Point = new Point3d(ptL.X, ptL.Y - FloorHeight / 2, 0);
                 dim.DimLinePoint = new Point3d((ptR.X + ptL.X) / 2, ptL.Y - FloorHeight / 2, 0);
-                dim.DimensionText = num;
+                dim.DimensionText = num + "F"; ;
                 AddToModelSpace(db, dim, "");
 
                 trans.Commit();
@@ -659,18 +688,45 @@ namespace ckx {
                                 double length = text.Width;
                                 Point3d pL = text.Location;
                                 ed.WriteMessage("\np=" + p + ",l=" + length + ",ro=" + text.Rotation);
-                                if (text.Rotation == 0)
+                                if (text.Rotation == 0 || text.Rotation == Math.PI * 2)
                                 {
-                                    Line3d l = new Line3d(new Point3d(pL.X , pL.Y, 0), new Point3d(pL.X , 0, 0));
+                                    Line3d l = new Line3d(new Point3d(pL.X - length / 2, pL.Y, 0), new Point3d(pL.X - length / 2, 0, 0));
                                     Matrix3d mtl = Matrix3d.Mirroring(l);
                                     text.TransformBy(mtl);
                                 }
-                                else if (text.Rotation == Math.PI / 2 || text.Rotation == Math.PI*3 / 2)
+                                else if (text.Rotation == Math.PI / 2 || text.Rotation == Math.PI * 3 / 2)
                                 {
                                     Line3d l = new Line3d(new Point3d(pL.X, pL.Y + length / 2, 0), new Point3d(0, pL.Y + length / 2, 0));
                                     Matrix3d mtl = Matrix3d.Mirroring(l);
                                     text.TransformBy(mtl);
                                 }
+                            }
+                            else if (ent.GetType() == typeof(DBText))
+                            {
+                                DBText text = ent as DBText;
+                                double length = GetWidth(text);
+                                Point3d pL = text.Position;
+                                if (text.Rotation == 0 || text.Rotation == Math.PI * 2)
+                                {
+                                    Line3d l = new Line3d(new Point3d(pL.X - length / 2, pL.Y, 0), new Point3d(pL.X - length / 2, 0, 0));
+                                    Matrix3d mtl = Matrix3d.Mirroring(l);
+                                    text.TransformBy(mtl);
+                                    text.IsMirroredInX = false;
+                                    ed.WriteMessage("\n1 p=" + p + ",l=" + length + ",ro=" + text.Rotation + ",w=" + GetWidth(text) + ",maxp=" + GetPoint(text)[0] + ",minp=" + GetPoint(text)[2]);
+
+                                }
+                                else if (text.Rotation == Math.PI / 2 || text.Rotation == Math.PI * 3 / 2)
+                                {
+                                    Line3d l = new Line3d(new Point3d(pL.X, pL.Y + length / 2, 0), new Point3d(0, pL.Y + length / 2, 0));
+                                    Matrix3d mtl = Matrix3d.Mirroring(l);
+                                    text.TransformBy(mtl);
+                                    ed.WriteMessage("\n 2 p=" + p + ",l=" + length + ",ro=" + text.Rotation + ",w=" + GetWidth(text) + ",maxp=" + GetPoint(text)[0] + ",minp=" + GetPoint(text)[2]);
+
+                                }
+                                ed.WriteMessage("\n 2 p=" + p + ",l=" + length + ",ro=" + text.Rotation + ",w=" + GetWidth(text) + ",maxp=" + GetPoint(text)[0] + ",minp=" + GetPoint(text)[2]);
+
+                                Polyline3d pl = new Polyline3d(Poly3dType.SimplePoly, GetPoint(text), false);
+                                AddToModelSpace(db, pl, "参考线不打印");
                             }
                             AddToModelSpace(db, ent, "0");
                         }
@@ -683,6 +739,80 @@ namespace ckx {
         }
 
 
+        public static Point3dCollection GetPoint(DBText dbtext)
+        {
+            Point3dCollection pts = new Point3dCollection();
+            Point3d pMax = dbtext.GeometricExtents.MaxPoint;
+            Point3d pMin = dbtext.GeometricExtents.MinPoint;
+            pts.Add(pMax); pts.Add(new Point3d(pMax.X, pMin.Y, 0)); pts.Add(pMin); pts.Add(new Point3d(pMin.X, pMax.Y, 0));
+
+            Line2d l1 = new Line2d(new Point2d(pts[0].X, pts[0].Y), new Point2d(pts[2].X, pts[2].Y));
+            Line2d l2 = new Line2d(new Point2d(pts[1].X, pts[1].Y), new Point2d(pts[3].X, pts[3].Y));
+            Point2d ptCenter = l1.IntersectWith(l2)[0];
+            double Rotation = dbtext.Rotation;
+            while (Rotation > Math.PI / 2)
+            {
+                Rotation = Rotation - Math.PI / 2;
+            }
+
+            Vector3d rotDir = new Vector3d(-Math.Sin(Rotation), Math.Cos(Rotation), 0);
+            Vector3d linDir = rotDir.CrossProduct(dbtext.Normal);
+            Point3d pCenter = new Point3d(ptCenter.X, ptCenter.Y, 0);
+            // Line3d mr = new Line3d(pCenter,pCenter+rotDir);
+            pts.Add(pCenter); pts.Add(pCenter + rotDir * 100); pts.Add(pCenter + linDir * 100);
+
+            /*double angle = new Vector2d(Math.Abs(Math.Cos(dbtext.Rotation)), Math.Abs(Math.Sin(dbtext.Rotation))).GetAngleTo(Vector2d.XAxis);
+            Vector2d vt1 = new Point2d(pMin.X, pMin.Y).GetVectorTo(new Point2d(pMax.X, pMax.Y));
+            double[] t = new double[9]
+            {
+                 Math.Sin(angle),Math.Cos(angle),0,
+                 Math.Cos(angle),Math.Sin(angle),0,
+                 0,0,1
+            };
+            double a = Math.Abs(dbtext.GeometricExtents.MaxPoint.Y - dbtext.GeometricExtents.MinPoint.Y);
+            double b = Math.Abs(dbtext.GeometricExtents.MaxPoint.X - dbtext.GeometricExtents.MinPoint.X);
+            Matrix2d mat = new Matrix2d(t);
+            Vector2d vec = mat.Inverse() * new Vector2d(a, b);
+            Point2d p2d0 = new Point2d(pMin.X, pMin.Y) + vec;
+            Point2d p2d1 = new Point2d(pMax.X, pMax.Y) - vec;
+            */
+
+            /*
+            Matrix3d rotMat = Matrix3d.Rotation(dbtext.Rotation,dbtext.Normal,pMin);
+            pMin = pMin.TransformBy(rotMat).Add(dbtext.Position.GetAsVector());
+            pMax = pMax.TransformBy(rotMat).Add(dbtext.Position.GetAsVector());
+            */
+
+            /*
+            Vector3d rotDir = new Vector3d(-Math.Sin(dbtext.Rotation),Math.Cos(dbtext.Rotation), 0);
+            Vector3d linDir = rotDir.CrossProduct(dbtext.Normal);
+            double actualWidth =Math.Abs((pMax.GetAsVector() - pMin.GetAsVector()).DotProduct(linDir));
+            Point3d pt3 = pMin.Add(linDir * actualWidth);
+            Point3d pt4 = pMax.Subtract(linDir * actualWidth);
+            pts.Add(pMax); pts.Add(pt3); pts.Add(pMin); pts.Add(pt4);
+            */
+
+
+            //Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("\nang=" + Math.Abs(angle) + ",ang1=" + Math.Abs(angle1) + ",ang2=" + Math.Abs(angle2));
+
+            return pts;
+        }
+        public static double GetWidth(this DBText dbtext)
+        {
+            if (string.IsNullOrEmpty(dbtext.TextString)) return 0;
+            double a = Math.Abs(dbtext.GeometricExtents.MaxPoint.Y - dbtext.GeometricExtents.MinPoint.Y);
+            double b = Math.Abs(dbtext.GeometricExtents.MaxPoint.X - dbtext.GeometricExtents.MinPoint.X);
+            double angle = new Vector2d(Math.Abs(Math.Cos(dbtext.Rotation)), Math.Abs(Math.Sin(dbtext.Rotation))).GetAngleTo(Vector2d.XAxis);
+            double[] t = new double[9]
+            {
+                 Math.Sin(angle),Math.Cos(angle),0,
+                 Math.Cos(angle),Math.Sin(angle),0,
+                 0,0,1
+            };
+            Matrix2d mat = new Matrix2d(t);
+            Vector2d vec = mat.Inverse() * new Vector2d(a, b);
+            return Math.Abs(vec.X);
+        }
 
 
 
@@ -700,6 +830,18 @@ namespace ckx {
                 using (BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord)
                 {
                     LayerTable lt = db.LayerTableId.GetObject(OpenMode.ForRead) as LayerTable;
+                    if (!lt.Has("参考线不打印") && LayerName == "参考线不打印")
+                    {
+                        LayerTableRecord ltr = new LayerTableRecord();
+                        ltr.Name = "参考线不打印";
+                        ltr.Color = Color.FromColorIndex(ColorMethod.ByAci, 195);
+                        ltr.IsPlottable = false;
+                        lt.UpgradeOpen();
+                        lt.Add(ltr);
+                        trans.AddNewlyCreatedDBObject(ltr, true);
+                        ltr.DowngradeOpen();
+                        lt.DowngradeOpen();
+                    }
                     if (lt.Has(LayerName))
                     {
                         ent.Layer = LayerName;
@@ -754,6 +896,9 @@ namespace ckx {
         }
 
     */
+
+
+
 
     }
 }
